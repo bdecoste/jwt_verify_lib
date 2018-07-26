@@ -42,8 +42,8 @@ class Jwks : public WithStatus {
 
   // Struct for JSON Web Key
   struct Pubkey {
-    bssl::UniquePtr<EVP_PKEY> evp_pkey_;
-    bssl::UniquePtr<EC_KEY> ec_key_;
+    EVP_PKEY* evp_pkey_;
+    EC_KEY* ec_key_;
     std::string kid_;
     std::string kty_;
     std::string alg_;

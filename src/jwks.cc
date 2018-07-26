@@ -49,7 +49,7 @@ inline const uint8_t* castToUChar(const std::string& str) {
 class EvpPkeyGetter : public WithStatus {
  public:
   // Create EVP_PKEY from PEM string
-  bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromStr(const std::string& pkey_pem) {
+  EVP_PKEY* createEvpPkeyFromStr(const std::string& pkey_pem) {
     // Header "-----BEGIN CERTIFICATE ---"and tailer "-----END CERTIFICATE ---"
     // should have been removed.
     std::string pkey_der;
@@ -57,8 +57,7 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksPemBadBase64);
       return nullptr;
     }
-    auto rsa = bssl::UniquePtr<RSA>(
-        RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
+    auto rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
     if (!rsa) {
       updateStatus(Status::JwksPemParseError);
       return nullptr;
@@ -66,21 +65,20 @@ class EvpPkeyGetter : public WithStatus {
     return createEvpPkeyFromRsa(rsa.get());
   }
 
-  bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromJwkRSA(const std::string& n,
+  EVP_PKEY* createEvpPkeyFromJwkRSA(const std::string& n,
                                                     const std::string& e) {
     return createEvpPkeyFromRsa(createRsaFromJwk(n, e).get());
   }
 
-  bssl::UniquePtr<EC_KEY> createEcKeyFromJwkEC(const std::string& x,
+  EC_KEY* createEcKeyFromJwkEC(const std::string& x,
                                                const std::string& y) {
-    bssl::UniquePtr<EC_KEY> ec_key(
-        EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    EC_KEY* ec_key(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
     if (!ec_key) {
       updateStatus(Status::JwksEcCreateKeyFail);
       return nullptr;
     }
-    bssl::UniquePtr<BIGNUM> bn_x = createBigNumFromBase64UrlString(x);
-    bssl::UniquePtr<BIGNUM> bn_y = createBigNumFromBase64UrlString(y);
+    BIGNUM* bn_x = createBigNumFromBase64UrlString(x);
+    BIGNUM* bn_y = createBigNumFromBase64UrlString(y);
     if (!bn_x || !bn_y) {
       // EC public key field is missing or has parse error.
       updateStatus(Status::JwksEcParseError);
@@ -96,28 +94,27 @@ class EvpPkeyGetter : public WithStatus {
   }
 
  private:
-  bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromRsa(RSA* rsa) {
+  EVP_PKEY* createEvpPkeyFromRsa(RSA* rsa) {
     if (!rsa) {
       return nullptr;
     }
-    bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_new());
+    EVP_PKEY* key(EVP_PKEY_new());
     EVP_PKEY_set1_RSA(key.get(), rsa);
     return key;
   }
 
-  bssl::UniquePtr<BIGNUM> createBigNumFromBase64UrlString(
+  BIGNUM* createBigNumFromBase64UrlString(
       const std::string& s) {
     std::string s_decoded;
     if (!absl::WebSafeBase64Unescape(s, &s_decoded)) {
       return nullptr;
     }
-    return bssl::UniquePtr<BIGNUM>(
-        BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL));
+    return BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL);
   };
 
-  bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
+  RSA* createRsaFromJwk(const std::string& n,
                                         const std::string& e) {
-    bssl::UniquePtr<RSA> rsa(RSA_new());
+    RSA* rsa(RSA_new());
     rsa->n = createBigNumFromBase64UrlString(n).release();
     rsa->e = createBigNumFromBase64UrlString(e).release();
     if (rsa->n == nullptr || rsa->e == nullptr) {
