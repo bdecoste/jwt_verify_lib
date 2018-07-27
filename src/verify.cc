@@ -39,9 +39,9 @@ bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
   }
   EVP_MD_CTX* md_ctx(EVP_MD_CTX_create());
 
-  EVP_DigestVerifyInit(md_ctx.get(), nullptr, md, nullptr, key);
-  EVP_DigestVerifyUpdate(md_ctx.get(), signed_data, signed_data_len);
-  return (EVP_DigestVerifyFinal(md_ctx.get(), signature, signature_len) == 1);
+  EVP_DigestVerifyInit(md_ctx, nullptr, md, nullptr, key);
+  EVP_DigestVerifyUpdate(md_ctx, signed_data, signed_data_len);
+  return (EVP_DigestVerifyFinal(md_ctx, signature, signature_len) == 1);
 }
 
 bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
@@ -74,7 +74,7 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
       BN_bin2bn(signature + 32, 32, ecdsa_sig->s) == nullptr) {
     return false;
   }
-  return (ECDSA_do_verify(digest, SHA256_DIGEST_LENGTH, ecdsa_sig.get(), key) ==
+  return (ECDSA_do_verify(digest, SHA256_DIGEST_LENGTH, ecdsa_sig, key) ==
           1);
 }
 
@@ -105,11 +105,11 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks) {
     kid_alg_matched = true;
 
     if (jwk->kty_ == "EC" &&
-        verifySignatureEC(jwk->ec_key_.get(), jwt.signature_, signed_data)) {
+        verifySignatureEC(jwk->ec_key_, jwt.signature_, signed_data)) {
       // Verification succeeded.
       return Status::Ok;
     } else if ((jwk->pem_format_ || jwk->kty_ == "RSA") &&
-               verifySignatureRSA(jwk->evp_pkey_.get(), EVP_sha256(),
+               verifySignatureRSA(jwk->evp_pkey_, EVP_sha256(),
                                   jwt.signature_, signed_data)) {
       // Verification succeeded.
       return Status::Ok;
