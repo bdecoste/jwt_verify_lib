@@ -57,7 +57,9 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksPemBadBase64);
       return nullptr;
     }
-    auto rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
+    EVP_PKEY* rsa = EVP_PKEY_new();
+    d2i_PUBKEY(EVP_PKEY &rsa, castToUChar(pkey_der), pkey_der.length());
+    //auto rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
     if (!rsa) {
       updateStatus(Status::JwksPemParseError);
       return nullptr;
