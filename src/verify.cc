@@ -37,7 +37,7 @@ bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
       signed_data == nullptr) {
     return false;
   }
-  bssl::UniquePtr<EVP_MD_CTX> md_ctx(EVP_MD_CTX_create());
+  EVP_MD_CTX* md_ctx(EVP_MD_CTX_create());
 
   EVP_DigestVerifyInit(md_ctx.get(), nullptr, md, nullptr, key);
   EVP_DigestVerifyUpdate(md_ctx.get(), signed_data, signed_data_len);
@@ -65,7 +65,7 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
   uint8_t digest[SHA256_DIGEST_LENGTH];
   SHA256(signed_data, signed_data_len, digest);
 
-  bssl::UniquePtr<ECDSA_SIG> ecdsa_sig(ECDSA_SIG_new());
+  ECDSA_SIG* ecdsa_sig(ECDSA_SIG_new());
   if (!ecdsa_sig) {
     return false;
   }

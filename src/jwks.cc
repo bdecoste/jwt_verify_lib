@@ -42,7 +42,7 @@ inline const uint8_t* castToUChar(const std::string& str) {
  *
  * Usage example:
  * EvpPkeyGetter e;
- * bssl::UniquePtr<EVP_PKEY> pkey =
+ * EVP_PKEY* pkey =
  * e.createEvpPkeyFromStr(pem_formatted_public_key);
  * (You can use createEvpPkeyFromJwkRSA() or createEcKeyFromJwkEC() for JWKs)
  */
