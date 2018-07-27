@@ -70,8 +70,10 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
     return false;
   }
 
-  if (BN_bin2bn(signature, 32, ecdsa_sig->r) == nullptr ||
-      BN_bin2bn(signature + 32, 32, ecdsa_sig->s) == nullptr) {
+  BIGNUM *pr, *ps;
+  ECDSA_SIG_get0(ecdsa_sig, &pr, &ps);
+  if (BN_bin2bn(signature, 32, *pr) == nullptr ||
+      BN_bin2bn(signature + 32, 32, *ps) == nullptr) {
     return false;
   }
   return (ECDSA_do_verify(digest, SHA256_DIGEST_LENGTH, ecdsa_sig, key) ==
