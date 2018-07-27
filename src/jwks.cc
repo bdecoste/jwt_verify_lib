@@ -62,12 +62,12 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksPemParseError);
       return nullptr;
     }
-    return createEvpPkeyFromRsa(rsa.get());
+    return createEvpPkeyFromRsa(rsa);
   }
 
   EVP_PKEY* createEvpPkeyFromJwkRSA(const std::string& n,
                                                     const std::string& e) {
-    return createEvpPkeyFromRsa(createRsaFromJwk(n, e).get());
+    return createEvpPkeyFromRsa(createRsaFromJwk(n, e));
   }
 
   EC_KEY* createEcKeyFromJwkEC(const std::string& x,
@@ -85,8 +85,8 @@ class EvpPkeyGetter : public WithStatus {
       return nullptr;
     }
 
-    if (EC_KEY_set_public_key_affine_coordinates(ec_key.get(), bn_x.get(),
-                                                 bn_y.get()) == 0) {
+    if (EC_KEY_set_public_key_affine_coordinates(ec_key, bn_x,
+                                                 bn_y) == 0) {
       updateStatus(Status::JwksEcParseError);
       return nullptr;
     }
@@ -99,7 +99,7 @@ class EvpPkeyGetter : public WithStatus {
       return nullptr;
     }
     EVP_PKEY* key(EVP_PKEY_new());
-    EVP_PKEY_set1_RSA(key.get(), rsa);
+    EVP_PKEY_set1_RSA(key, rsa);
     return key;
   }
 
@@ -280,7 +280,7 @@ void Jwks::createFromJwksCore(const std::string& pkey_jwks) {
 
   for (auto key_it = keys_value.Begin(); key_it != keys_value.End(); ++key_it) {
     PubkeyPtr key_ptr(new Pubkey());
-    Status status = extractJwk(*key_it, key_ptr.get());
+    Status status = extractJwk(*key_it, key_ptr);
     if (status == Status::Ok) {
       keys_.push_back(std::move(key_ptr));
     } else {
