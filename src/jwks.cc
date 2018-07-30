@@ -169,8 +169,8 @@ class EvpPkeyGetter : public WithStatus {
     }
 
     RSA_set0_key(rsa, bn_n, bn_e, NULL);
-    
-    if (BN_cmp_word(bn_e, 3) != 0 && BN_cmp_word(bn_e, 65537) != 0) {
+    const BIGNUM* three =  
+    if (bn_cmp_word(bn_e, 3) != 0 && bn_cmp_word(bn_e, 65537) != 0) {
       // non-standard key; reject it early.
       updateStatus(Status::JwksRsaParseError);
       return nullptr;
@@ -178,6 +178,18 @@ class EvpPkeyGetter : public WithStatus {
     return rsa;
   }
 };
+
+int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
+  BIGNUM b_bn;
+  BN_init(&b_bn);
+
+  b_bn.d = &b;
+  b_bn.top = b > 0;
+  b_bn.dmax = 1;
+  b_bn.flags = BN_FLG_STATIC_DATA;
+  return BN_cmp(a, &b_bn);
+}
+
 
 Status extractJwkFromJwkRSA(const rapidjson::Value& jwk_json,
                             Jwks::Pubkey* jwk) {
