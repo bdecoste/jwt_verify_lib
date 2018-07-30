@@ -65,12 +65,12 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
   uint8_t digest[SHA256_DIGEST_LENGTH];
   SHA256(signed_data, signed_data_len, digest);
 
-  ECDSA_SIG* ecdsa_sig(ECDSA_SIG_new());
+  const ECDSA_SIG* ecdsa_sig(ECDSA_SIG_new());
   if (!ecdsa_sig) {
     return false;
   }
 
-  BIGNUM *pr, *ps;
+  const BIGNUM *pr, *ps;
   ECDSA_SIG_get0(ecdsa_sig, &pr, &ps);
   if (BN_bin2bn(signature, 32, *pr) == nullptr ||
       BN_bin2bn(signature + 32, 32, *ps) == nullptr) {
