@@ -64,7 +64,7 @@ class Jwks : public WithStatus {
   void createFromJwksCore(const std::string& pkey_jwks);
 
   // List of Jwks
-  std::vector<PubkeyPtr> keys_;
+  std::vector<Pubkey*> keys_;
 };
 
 typedef std::unique_ptr<Jwks> JwksPtr;
