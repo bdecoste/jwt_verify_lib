@@ -169,7 +169,6 @@ class EvpPkeyGetter : public WithStatus {
     }
 
     RSA_set0_key(rsa, bn_n, bn_e, NULL);
-    const BIGNUM* three =  
     if (bn_cmp_word(bn_e, 3) != 0 && bn_cmp_word(bn_e, 65537) != 0) {
       // non-standard key; reject it early.
       updateStatus(Status::JwksRsaParseError);
