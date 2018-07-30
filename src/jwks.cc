@@ -58,16 +58,26 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksPemBadBase64);
       return nullptr;
     }
-    EVP_PKEY* rsa = EVP_PKEY_new();
-    const unsigned char* pkey_uchar = castToUChar(pkey_der);
-    d2i_PUBKEY(&rsa, &pkey_uchar, pkey_der.length());
-    //auto rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
+    RSA* rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
     if (!rsa) {
       updateStatus(Status::JwksPemParseError);
       return nullptr;
     }
-    return createEvpPkeyFromRsa(rsa);
+    return createEvpPkeyFromRsa(rsa.get());
   }
+
+  RSA *RSA_public_key_from_bytes(const uint8_t *in, size_t in_len) {
+    CBS cbs;
+    CBS_init(&cbs, in, in_len);
+    RSA *ret = RSA_parse_public_key(&cbs);
+    if (ret == NULL || CBS_len(&cbs) != 0) {
+      OPENSSL_PUT_ERROR(RSA, RSA_R_BAD_ENCODING);
+      RSA_free(ret);
+      return NULL;
+    }
+    return ret;
+  }
+
 
   EVP_PKEY* createEvpPkeyFromJwkRSA(const std::string& n,
                                                     const std::string& e) {
