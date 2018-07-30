@@ -59,7 +59,8 @@ class EvpPkeyGetter : public WithStatus {
       return nullptr;
     }
     EVP_PKEY* rsa = EVP_PKEY_new();
-    d2i_PUBKEY(&rsa, castToUChar(pkey_der), pkey_der.length());
+    const unsigned char* pkey_uchar = castToUChar(pkey_der);
+    d2i_PUBKEY(&rsa, &pkey_uchar, pkey_der.length());
     //auto rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
     if (!rsa) {
       updateStatus(Status::JwksPemParseError);
