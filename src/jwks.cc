@@ -179,7 +179,6 @@ class EvpPkeyGetter : public WithStatus {
 
   int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
     BIGNUM* b_bn = BN_new();
-    BN_init(b_bn);
 
     BN_set_word(b_bn, b);
     BN_set_flags(b_bn, BN_FLG_STATIC_DATA);
@@ -338,7 +337,7 @@ void Jwks::createFromJwksCore(const std::string& pkey_jwks) {
   }
 
   for (auto key_it = keys_value.Begin(); key_it != keys_value.End(); ++key_it) {
-    PubkeyPtr key_ptr(new Pubkey());
+    Pubkey* key_ptr(new Pubkey());
     Status status = extractJwk(*key_it, key_ptr);
     if (status == Status::Ok) {
       keys_.push_back(std::move(key_ptr));
