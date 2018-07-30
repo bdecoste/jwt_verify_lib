@@ -176,18 +176,19 @@ class EvpPkeyGetter : public WithStatus {
     }
     return rsa;
   }
+
+  int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
+    BIGNUM b_bn;
+    BN_init(&b_bn);
+
+    b_bn.d = &b;
+    b_bn.top = b > 0;
+    b_bn.dmax = 1;
+    b_bn.flags = BN_FLG_STATIC_DATA;
+    return BN_cmp(a, &b_bn);
+  }
+
 };
-
-int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
-  BIGNUM b_bn;
-  BN_init(&b_bn);
-
-  b_bn.d = &b;
-  b_bn.top = b > 0;
-  b_bn.dmax = 1;
-  b_bn.flags = BN_FLG_STATIC_DATA;
-  return BN_cmp(a, &b_bn);
-}
 
 
 Status extractJwkFromJwkRSA(const rapidjson::Value& jwk_json,
