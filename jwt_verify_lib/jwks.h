@@ -55,7 +55,7 @@ class Jwks : public WithStatus {
   typedef std::unique_ptr<Pubkey> PubkeyPtr;
 
   // Access to list of Jwks
-  const std::vector<PubkeyPtr>& keys() const { return keys_; }
+  const std::vector<Pubkey*>& keys() const { return keys_; }
 
  private:
   // Create Pem
