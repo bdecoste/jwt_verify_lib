@@ -340,7 +340,7 @@ void Jwks::createFromJwksCore(const std::string& pkey_jwks) {
     Pubkey* key_ptr(new Pubkey());
     Status status = extractJwk(*key_it, key_ptr);
     if (status == Status::Ok) {
-      keys_.push_back(std::move(key_ptr));
+      keys_.push_back(key_ptr);
     } else {
       updateStatus(status);
       break;
