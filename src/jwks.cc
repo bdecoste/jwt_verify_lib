@@ -58,18 +58,21 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksPemBadBase64);
       return nullptr;
     }
-    RSA* rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
+    
+    const unsigned char *pkey_uchar = castToUChar(pkey_der);
+    RSA *rsa = d2i_RSA_PUBKEY(NULL, &pkey_uchar, pkey_der.length() );
+
+//    RSA* rsa = RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length());
     if (!rsa) {
       updateStatus(Status::JwksPemParseError);
       return nullptr;
     }
-    return createEvpPkeyFromRsa(rsa.get());
+    return createEvpPkeyFromRsa(rsa);
   }
 
+/*
   RSA *RSA_public_key_from_bytes(const uint8_t *in, size_t in_len) {
-    CBS cbs;
-    CBS_init(&cbs, in, in_len);
-    RSA *ret = RSA_parse_public_key(&cbs);
+    RSA *ret = parse_public_key(in, in_len);
     if (ret == NULL || CBS_len(&cbs) != 0) {
       OPENSSL_PUT_ERROR(RSA, RSA_R_BAD_ENCODING);
       RSA_free(ret);
@@ -78,6 +81,31 @@ class EvpPkeyGetter : public WithStatus {
     return ret;
   }
 
+  RSA *parse_public_key(const uint8_t *in, size_t in_len) {
+    RSA *ret = RSA_new();
+    if (ret == NULL) {
+      return NULL;
+    }
+    CBS child;
+    if (!CBS_get_asn1(cbs, &child, CBS_ASN1_SEQUENCE) ||
+        !parse_integer(&child, &ret->n) ||
+        !parse_integer(&child, &ret->e) ||
+        CBS_len(&child) != 0) {
+      OPENSSL_PUT_ERROR(RSA, RSA_R_BAD_ENCODING);
+      RSA_free(ret);
+      return NULL;
+    }
+
+    if (!BN_is_odd(ret->e) ||
+        BN_num_bits(ret->e) < 2) {
+      OPENSSL_PUT_ERROR(RSA, RSA_R_BAD_RSA_PARAMETERS);
+      RSA_free(ret);
+      return NULL;
+    }
+
+    return ret;
+  }
+*/
 
   EVP_PKEY* createEvpPkeyFromJwkRSA(const std::string& n,
                                                     const std::string& e) {
