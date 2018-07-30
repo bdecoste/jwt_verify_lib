@@ -181,10 +181,9 @@ class EvpPkeyGetter : public WithStatus {
     BIGNUM* b_bn = BN_new();
     BN_init(b_bn);
 
-    b_bn->d = &b;
-    b_bn->top = b > 0;
-    b_bn->dmax = 1;
-    b_bn->flags = BN_FLG_STATIC_DATA;
+    BN_set_word(b_bn, b);
+    BN_set_flags(b_bn, BN_FLG_STATIC_DATA);
+
     return BN_cmp(a, b_bn);
   }
 
