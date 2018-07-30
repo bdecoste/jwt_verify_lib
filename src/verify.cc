@@ -70,7 +70,7 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
     return false;
   }
 
-  const BIGNUM *pr, *ps;
+  BIGNUM *pr, *ps;
   ECDSA_SIG_get0(ecdsa_sig, &pr, &ps);
   if (BN_bin2bn(signature, 32, *pr) == nullptr ||
       BN_bin2bn(signature + 32, 32, *ps) == nullptr) {
