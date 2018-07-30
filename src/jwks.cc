@@ -157,20 +157,20 @@ class EvpPkeyGetter : public WithStatus {
   RSA* createRsaFromJwk(const std::string& n,
                                         const std::string& e) {
     RSA* rsa(RSA_new());
-    BIGNUM* n = createBigNumFromBase64UrlString(n);
-    BIGNUM* e = createBigNumFromBase64UrlString(e);
+    BIGNUM* bn_n = createBigNumFromBase64UrlString(n);
+    BIGNUM* bn_e = createBigNumFromBase64UrlString(e);
 
 //    rsa->n = createBigNumFromBase64UrlString(n).release();
 //    rsa->e = createBigNumFromBase64UrlString(e).release();
-    if (n == nullptr || e == nullptr) {
+    if (bn_n == nullptr || bn_e == nullptr) {
       // RSA public key field is missing or has parse error.
       updateStatus(Status::JwksRsaParseError);
       return nullptr;
     }
 
-    RSA_set0_key(rsa, n, e, NULL);
+    RSA_set0_key(rsa, bn_n, bn_e, NULL);
     
-    if (BN_cmp_word(e, 3) != 0 && BN_cmp_word(e, 65537) != 0) {
+    if (BN_cmp_word(bn_e, 3) != 0 && BN_cmp_word(bn_e, 65537) != 0) {
       // non-standard key; reject it early.
       updateStatus(Status::JwksRsaParseError);
       return nullptr;
