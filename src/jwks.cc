@@ -306,14 +306,14 @@ JwksPtr Jwks::createFrom(const std::string& pkey, Type type) {
 
 void Jwks::createFromPemCore(const std::string& pkey_pem) {
   keys_.clear();
-  PubkeyPtr key_ptr(new Pubkey());
+  Pubkey* key_ptr = new Pubkey();
   EvpPkeyGetter e;
   key_ptr->evp_pkey_ = e.createEvpPkeyFromStr(pkey_pem);
   key_ptr->pem_format_ = true;
   updateStatus(e.getStatus());
   assert((key_ptr->evp_pkey_ == nullptr) == (e.getStatus() != Status::Ok));
   if (e.getStatus() == Status::Ok) {
-    keys_.push_back(std::move(key_ptr));
+    keys_.push_back(key_ptr);
   }
 }
 
