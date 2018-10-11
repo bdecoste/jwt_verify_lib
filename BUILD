@@ -18,7 +18,7 @@ cc_library(
     deps = [
         "//external:abseil_strings",
         "//external:rapidjson",
-        "@openssl_crypto//:openssl-lib",
+        "@openssl//:openssl-lib",
     ],
 )
 
