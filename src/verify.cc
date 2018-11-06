@@ -77,10 +77,19 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
     return false;
   }
 
-  if (BN_bin2bn(signature, 32, ecdsa_sig->r) == nullptr ||
-      BN_bin2bn(signature + 32, 32, ecdsa_sig->s) == nullptr) {
+  const BIGNUM *pr, *ps;
+  ECDSA_SIG_get0(ecdsa_sig.get(), &pr, &ps);
+
+//  if (BN_bin2bn(signature, 32, ecdsa_sig->r) == nullptr ||
+//      BN_bin2bn(signature + 32, 32, ecdsa_sig->s) == nullptr) {
+//    return false;
+//  }
+  
+  if (BN_bin2bn(signature, 32, const_cast<BIGNUM*>(pr)) == nullptr ||
+      BN_bin2bn(signature + 32, 32, const_cast<BIGNUM*>(ps)) == nullptr) {
     return false;
   }
+
   if (ECDSA_do_verify(digest, SHA256_DIGEST_LENGTH, ecdsa_sig.get(), key) ==
       1) {
     return true;

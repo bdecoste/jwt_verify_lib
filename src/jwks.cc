@@ -58,13 +58,17 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksPemBadBase64);
       return nullptr;
     }
-    auto rsa = bssl::UniquePtr<RSA>(
-        RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
+    
+    const unsigned char *pkey_uchar = castToUChar(pkey_der);
+    RSA *rsa = d2i_RSA_PUBKEY(NULL, &pkey_uchar, pkey_der.length() );
+
+//    auto rsa = bssl::UniquePtr<RSA>(
+//        RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
     if (!rsa) {
       updateStatus(Status::JwksPemParseError);
       return nullptr;
     }
-    return createEvpPkeyFromRsa(rsa.get());
+    return createEvpPkeyFromRsa(rsa);
   }
 
   bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromJwkRSA(const std::string& n,
@@ -119,19 +123,30 @@ class EvpPkeyGetter : public WithStatus {
   bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
                                         const std::string& e) {
     bssl::UniquePtr<RSA> rsa(RSA_new());
-    rsa->n = createBigNumFromBase64UrlString(n).release();
-    rsa->e = createBigNumFromBase64UrlString(e).release();
-    if (rsa->n == nullptr || rsa->e == nullptr) {
+    bssl::UniquePtr<BIGNUM> bn_n = createBigNumFromBase64UrlString(n);
+    bssl::UniquePtr<BIGNUM> bn_e = createBigNumFromBase64UrlString(e);
+
+    if (bn_n.get() == nullptr || bn_e.get() == nullptr) {
       // RSA public key field is missing or has parse error.
       updateStatus(Status::JwksRsaParseError);
       return nullptr;
     }
-    if (BN_cmp_word(rsa->e, 3) != 0 && BN_cmp_word(rsa->e, 65537) != 0) {
+    RSA_set0_key(rsa.get(), bn_n.get(), bn_e.get(), NULL);
+    if (bn_cmp_word(bn_e.get(), 3) != 0 && bn_cmp_word(bn_e.get(), 65537) != 0) {
       // non-standard key; reject it early.
       updateStatus(Status::JwksRsaParseError);
       return nullptr;
     }
     return rsa;
+  }
+
+  int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
+    BIGNUM* b_bn = BN_new();
+
+    BN_set_word(b_bn, b);
+    BN_set_flags(b_bn, BN_FLG_STATIC_DATA);
+
+    return BN_cmp(a, b_bn);
   }
 };
 
