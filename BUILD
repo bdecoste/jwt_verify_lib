@@ -12,6 +12,7 @@ cc_library(
         "src/jwt.cc",
         "src/status.cc",
         "src/verify.cc",
+        "src/bssl_wrapper.cc",
     ],
     hdrs = [
         "jwt_verify_lib/check_audience.h",
@@ -19,12 +20,16 @@ cc_library(
         "jwt_verify_lib/jwt.h",
         "jwt_verify_lib/status.h",
         "jwt_verify_lib/verify.h",
+        "jwt_verify_lib/bssl_wrapper.h",
+    ],
+    linkopts = [
+        "-ldl",
     ],
     deps = [
         "//external:abseil_strings",
         "//external:abseil_time",
         "//external:rapidjson",
-        "//external:ssl",
+        "@openssl//:openssl-lib",
     ],
 )
 
@@ -160,3 +165,4 @@ cc_test(
         "//external:googletest_main",
     ],
 )
+
