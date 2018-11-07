@@ -1,21 +1,21 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-BORINGSSL_COMMIT = "9df0c47bc034d60d73d216cd0e090707b3fbea58"  # same as Envoy
-BORINGSSL_SHA256 = "86d0614bb9e6cb4e6444b83bb1f031755eff4bbe52cd8f4cd5720bb84a7ea9f5"
+#BORINGSSL_COMMIT = "9df0c47bc034d60d73d216cd0e090707b3fbea58"  # same as Envoy
+#BORINGSSL_SHA256 = "86d0614bb9e6cb4e6444b83bb1f031755eff4bbe52cd8f4cd5720bb84a7ea9f5"
 
-def boringssl_repositories(bind = True):
-    http_archive(
-        name = "boringssl",
-        strip_prefix = "boringssl-" + BORINGSSL_COMMIT,
-        url = "https://github.com/google/boringssl/archive/" + BORINGSSL_COMMIT + ".tar.gz",
-        sha256 = BORINGSSL_SHA256,
-    )
+#def boringssl_repositories(bind = True):
+#    http_archive(
+#        name = "boringssl",
+#        strip_prefix = "boringssl-" + BORINGSSL_COMMIT,
+#        url = "https://github.com/google/boringssl/archive/" + BORINGSSL_COMMIT + ".tar.gz",
+#        sha256 = BORINGSSL_SHA256,
+#    )
 
-    if bind:
-        native.bind(
-            name = "ssl",
-            actual = "@boringssl//:ssl",
-        )
+#    if bind:
+#        native.bind(
+#            name = "ssl",
+#            actual = "@boringssl//:ssl",
+#        )
 
 GOOGLETEST_COMMIT = "43863938377a9ea1399c0596269e0890b5c5515a"
 GOOGLETEST_SHA256 = "7c8ece456ad588c30160429498e108e2df6f42a30888b3ec0abf5d9792d9d3a0"
