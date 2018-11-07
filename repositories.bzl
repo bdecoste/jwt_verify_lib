@@ -1,16 +1,3 @@
-def boringssl_repositories(bind=True):
-    native.git_repository(
-        name = "boringssl",
-        commit = "9df0c47bc034d60d73d216cd0e090707b3fbea58",  # same as Envoy
-        remote = "https://boringssl.googlesource.com/boringssl",
-    )
-
-    if bind:
-        native.bind(
-            name = "ssl",
-            actual = "@boringssl//:ssl",
-        )
-
 def googletest_repositories(bind=True):
     native.new_git_repository(
         name = "googletest_git",
