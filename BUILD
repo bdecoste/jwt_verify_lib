@@ -13,7 +13,6 @@ cc_library(
         "src/status.cc",
         "src/struct_utils.h",
         "src/verify.cc",
-        "src/bssl_wrapper.cc",
     ],
     hdrs = [
         "jwt_verify_lib/check_audience.h",
@@ -21,7 +20,6 @@ cc_library(
         "jwt_verify_lib/jwt.h",
         "jwt_verify_lib/status.h",
         "jwt_verify_lib/verify.h",
-        "jwt_verify_lib/bssl_wrapper.h",
     ],
     linkopts = [
         "-ldl",
@@ -30,6 +28,7 @@ cc_library(
         "//external:abseil_strings",
         "//external:abseil_time",
         "//external:protobuf",
+        "@bssl_wrapper//:bssl_wrapper",
         "@openssl//:openssl-lib",
     ],
 )
