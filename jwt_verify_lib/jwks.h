@@ -22,7 +22,7 @@
 #include "openssl/ec.h"
 #include "openssl/evp.h"
 
-#include "source/bssl_wrapper.h"
+#include "bssl_wrapper/bssl_wrapper.h"
 
 namespace google {
 namespace jwt_verify {
