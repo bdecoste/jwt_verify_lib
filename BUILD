@@ -25,7 +25,8 @@ cc_library(
         "//external:abseil_strings",
         "//external:abseil_time",
         "//external:protobuf",
-        "//external:ssl",
+        "//external:bssl_wrapper",
+        "@openssl//:openssl-lib",
     ],
 )
 
