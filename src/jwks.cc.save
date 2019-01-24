@@ -1,0 +1,601 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <assert.h>
+#include <iostream>
+
+#include "absl/strings/escaping.h"
+#include "google/protobuf/struct.pb.h"
+#include "google/protobuf/util/json_util.h"
+#include "jwt_verify_lib/jwks.h"
+#include "src/struct_utils.h"
+
+#include "openssl/bn.h"
+#include "openssl/ecdsa.h"
+#include "openssl/err.h"
+#include "openssl/evp.h"
+#include "openssl/rsa.h"
+#include "openssl/sha.h"
+
+namespace google {
+namespace jwt_verify {
+
+namespace {
+
+// A convinence inline cast function.
+inline const uint8_t* castToUChar(const std::string& str) {
+  return reinterpret_cast<const uint8_t*>(str.c_str());
+}
+
+inline const char* castToChar(const std::string& str) {
+  return reinterpret_cast<const char*>(str.c_str());
+}
+
+/** Class to create EVP_PKEY object from string of public key, formatted in PEM
+ * or JWKs.
+ * If it failed, status_ holds the failure reason.
+ *
+ * Usage example:
+ * EvpPkeyGetter e;
+ * bssl::UniquePtr<EVP_PKEY> pkey =
+ * e.createEvpPkeyFromStr(pem_formatted_public_key);
+ * (You can use createEvpPkeyFromJwkRSA() or createEcKeyFromJwkEC() for JWKs)
+ */
+class EvpPkeyGetter : public WithStatus {
+ public:
+  // Create EVP_PKEY from PEM string
+  bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromStr(const std::string& pkey_pem1) {
+    // Header "-----BEGIN CERTIFICATE ---"and tailer "-----END CERTIFICATE ---"
+    // should have been removed.
+
+	  const std::string pem =
+//      const char *data =
+/*			        "MIIBCgKCAQEAtw7MNxUTxmzWROCD5BqJxmzT7xqc9KsnAjbXCoqEEHDx4WBlfcwk"
+			        "XHt9e/2+Uwi3Arz3FOMNKwGGlbr7clBY3utsjUs8BTF0kO/poAmSTdSuGeh2mSbc"
+			        "VHvmQ7X/kichWwx5Qj0Xj4REU3Gixu1gQIr3GATPAIULo5lj/ebOGAa+l0wIG80N"
+			        "zz1pBtTIUx68xs5ZGe7cIJ7E8n4pMX10eeuh36h+aossePeuHulYmjr4N0/1jG7a"
+			        "+hHYL6nqwOR3ej0VqCTLS0OloC0LuCpLV7CnSpwbp2Qg/c+MDzQ0TH8g8drIzR5h"
+			        "Fe9a3NlNRMXgUU5RqbLnR9zfXr7b9oEszQIDAQAB";
+*/
+	  		          "-----BEGIN CERTIFICATE-----\n"
+	  		          "MIIDaDCCAlCgAwIBAgIJAO8vBu8i8exWMA0GCSqGSIb3DQEBCwUAMEkxCzAJBgNV\n"
+	  		          "BAYTAlVTMQswCQYDVQQIDAJDQTEtMCsGA1UEBwwkTG9zIEFuZ2VsZXNPPUJlYXN0\n"
+	  		          "Q049d3d3LmV4YW1wbGUuY29tMB4XDTE3MDUwMzE4MzkxMloXDTQ0MDkxODE4Mzkx\n"
+	  		          "MlowSTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkNBMS0wKwYDVQQHDCRMb3MgQW5n\n"
+	  		          "ZWxlc089QmVhc3RDTj13d3cuZXhhbXBsZS5jb20wggEiMA0GCSqGSIb3DQEBAQUA\n"
+	  		          "A4IBDwAwggEKAoIBAQDJ7BRKFO8fqmsEXw8v9YOVXyrQVsVbjSSGEs4Vzs4cJgcF\n"
+	  		          "xqGitbnLIrOgiJpRAPLy5MNcAXE1strVGfdEf7xMYSZ/4wOrxUyVw/Ltgsft8m7b\n"
+	  		          "Fu8TsCzO6XrxpnVtWk506YZ7ToTa5UjHfBi2+pWTxbpN12UhiZNUcrRsqTFW+6fO\n"
+	  		          "9d7xm5wlaZG8cMdg0cO1bhkz45JSl3wWKIES7t3EfKePZbNlQ5hPy7Pd5JTmdGBp\n"
+	  		          "yY8anC8u4LPbmgW0/U31PH0rRVfGcBbZsAoQw5Tc5dnb6N2GEIbq3ehSfdDHGnrv\n"
+	  		          "enu2tOK9Qx6GEzXh3sekZkxcgh+NlIxCNxu//Dk9AgMBAAGjUzBRMB0GA1UdDgQW\n"
+	  		          "BBTZh0N9Ne1OD7GBGJYz4PNESHuXezAfBgNVHSMEGDAWgBTZh0N9Ne1OD7GBGJYz\n"
+	  		          "4PNESHuXezAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQCmTJVT\n"
+	  		          "LH5Cru1vXtzb3N9dyolcVH82xFVwPewArchgq+CEkajOU9bnzCqvhM4CryBb4cUs\n"
+	  		          "gqXWp85hAh55uBOqXb2yyESEleMCJEiVTwm/m26FdONvEGptsiCmF5Gxi0YRtn8N\n"
+	  		          "V+KhrQaAyLrLdPYI7TrwAOisq2I1cD0mt+xgwuv/654Rl3IhOMx+fKWKJ9qLAiaE\n"
+	  		          "fQyshjlPP9mYVxWOxqctUdQ8UnsUKKGEUcVrA08i1OAnVKlPFjKBvk+r7jpsTPcr\n"
+	  		          "9pWXTO9JrYMML7d+XRSZA1n3856OqZDX4403+9FnXCvfcLZLLKTBvwwFgEFGpzjK\n"
+	  		          "UEVbkhd5qstF6qWK\n"
+	  		          "-----END CERTIFICATE-----\n";
+/*	   "-----BEGIN CERTIFICATE-----\n"
+	   "MIIDkTCCAnmgAwIBAgIJANmw5fEIIKyUMA0GCSqGSIb3DQEBCwUAMF8xCzAJBgNV\n"
+	   "BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX\n"
+	   "aWRnaXRzIFB0eSBMdGQxGDAWBgNVBAMMD2FwaS5jb21wYW55LmNvbTAeFw0xNzA4\n"
+	   "MDYyMTI0MzJaFw0yNzA4MDQyMTI0MzJaMF8xCzAJBgNVBAYTAkFVMRMwEQYDVQQI\n"
+	   "DApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQx\n"
+	   "GDAWBgNVBAMMD2FwaS5jb21wYW55LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP\n"
+	   "ADCCAQoCggEBAM83cobD9k+k85RTdI1qCZqjpFJzdWZ1GvboPMUKm8ZGfecdAnSi\n"
+	   "R5G85YRxaKG9DUq/y0htzbii5WKhQ6x3xNkrl8XiWQ8xBlwcw9c/vWKxLzocqDSN\n"
+	   "BNKH9eGr3QlVw2B98NkOB1D9HTsRojGLRgdIQRH+DBD9gmyYlPbrmfJexjS0/njy\n"
+	   "DKoHyc9GvVtPAS0QUgcMRYXzxV2yhIqlO3VCC5FTGVfq1jvHc/2bhguaL2aasM1O\n"
+	   "5Qx+eOlN7bxyej7rcxmygLejPzVYjdvT3zcm90RDLxrNtHz649vdixlk36Bf/ViD\n"
+	   "uKqwBVmSjDJAaOQqPVm1kOkEipj0SsxWr4kCAwEAAaNQME4wHQYDVR0OBBYEFIH3\n"
+	   "n8OxsWb+XX7cgCqr2VA8c8/1MB8GA1UdIwQYMBaAFIH3n8OxsWb+XX7cgCqr2VA8\n"
+	   "c8/1MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBABuC0IrxdL4ZzcDk\n"
+	   "DfKIaONMweM95rj1iebZe9VmwZfTxixKGcTmK4JYMC4nfGch47/+HUkqOOAvcXBU\n"
+	   "jsiOdmnf9Oc6kVv79FwsC5saIp9fBEq78tznsg8GMOtzsogcuO0AN6LZQbXA4xvs\n"
+	   "4fz050T90MnLA1d5kBMFF8P21NLEfMK/4nwqWqhFEFgt6j1UZIERYRTldJoBGkiP\n"
+	   "zdj/kkANxpNyqYxLnBAeGWo5tqjAyMcr6rAz2fhw6mk0ImiLc3OLZg1bmhcEAzCU\n"
+	   "+JdCHzHkKzCuEAzCRpwYdS7c/AAL1HaYhievCPfzfRjMMM/W9+yBItTLyM/MYUmP\n"
+	   "2toT5n8=\n"
+	  "-----END CERTIFICATE-----";
+*/
+//std::cout << "!!!!!!!!!!!!!!!!!!!! pkey_pem \n" << pem << " \n";
+
+//  std::string pkey_der;
+//  if (!absl::Base64Unescape(pkey_pem, &pkey_der) || pkey_der.empty()) {
+//    updateStatus(Status::JwksPemBadBase64);
+//    return nullptr;
+//  }
+//std::cout << "!!!!!!!!!!!!!!!!!!!! der " << pkey_der << " \n";
+
+//    const unsigned char *pkey_uchar = castToUChar(pkey_der);
+//    RSA *rsa = d2i_RSA_PUBKEY(NULL, &pkey_uchar, pkey_der.length() );
+//    std::cout << "!!!!!!!!!!!!!!!!!!!! rsa " << rsa << " \n";
+
+    //auto rsa = bssl::UniquePtr<RSA>(
+    //    rsa_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
+
+BIO *bio;
+//X509 *certificate;
+//bio = BIO_new_mem_buf(pem.c_str(), pem.length());
+bio = BIO_new(BIO_s_mem());
+//const unsigned char *pkey_char = castToUChar(pkey_pem);
+int result = BIO_write(bio, pkey_pem1.c_str(), pkey_pem1.length());
+//int result = BIO_puts(bio, data);
+std::cout << "!!!!!!!!!!!!!!!!!!!! result " << result << " " << pkey_pem1.length() << " \n";
+std::cout << "!!!!!!!!!!!!!!!!!!!! bio " << bio << " \n";
+X509 *x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+std::cout << "!!!!!!!!!!!!!!!!!!!! x509 " << x509 << " \n";
+
+/*
+EVP_PKEY* evp_key = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! evp_key " << evp_key << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+RSA *rsa = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! rsa " << rsa << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+rsa = PEM_read_bio_RSA_PUBKEY(bio, NULL, NULL, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! rsa " << rsa << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+X509* x509 = d2i_X509_bio(bio, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! x509 " << x509 << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+x509 = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! x509 " << x509 << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+rsa = d2i_RSAPublicKey_bio(bio, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! rsa " << rsa << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+rsa = d2i_RSA_PUBKEY_bio(bio, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! rsa " << rsa << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+rsa = d2i_RSAPrivateKey_bio(bio, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! rsa " << rsa << " \n";
+result = BIO_write(bio, pem.c_str(), pem.length());
+EVP_PKEY *key = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
+
+std::cout << "!!!!!!!!!!!!!!!!!!!! key " << key << " \n";
+*/
+
+//d2i_PrivateKey_bio()
+
+
+//    if (!rsa) {
+//      updateStatus(Status::JwksPemParseError);
+      return nullptr;
+//    }
+//    return createEvpPkeyFromRsa(rsa);
+  }
+
+  bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromJwkRSA(const std::string& n,
+                                                    const std::string& e) {
+    return createEvpPkeyFromRsa(createRsaFromJwk(n, e).get());
+  }
+
+  bssl::UniquePtr<EC_KEY> createEcKeyFromJwkEC(const std::string& x,
+                                               const std::string& y) {
+    bssl::UniquePtr<EC_KEY> ec_key(
+        EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
+    if (!ec_key) {
+      updateStatus(Status::JwksEcCreateKeyFail);
+      return nullptr;
+    }
+    bssl::UniquePtr<BIGNUM> bn_x = createBigNumFromBase64UrlString(x);
+    bssl::UniquePtr<BIGNUM> bn_y = createBigNumFromBase64UrlString(y);
+    if (!bn_x || !bn_y) {
+      // EC public key field is missing or has parse error.
+      updateStatus(Status::JwksEcParseError);
+      return nullptr;
+    }
+
+    if (EC_KEY_set_public_key_affine_coordinates(ec_key.get(), bn_x.get(),
+                                                 bn_y.get()) == 0) {
+      updateStatus(Status::JwksEcParseError);
+      return nullptr;
+    }
+    return ec_key;
+  }
+
+ private:
+  bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromRsa(RSA* rsa) {
+    if (!rsa) {
+      return nullptr;
+    }
+    bssl::UniquePtr<EVP_PKEY> key(EVP_PKEY_new());
+    EVP_PKEY_set1_RSA(key.get(), rsa);
+    return key;
+  }
+
+  bssl::UniquePtr<BIGNUM> createBigNumFromBase64UrlString(
+      const std::string& s) {
+    std::string s_decoded;
+    if (!absl::WebSafeBase64Unescape(s, &s_decoded)) {
+      return nullptr;
+    }
+    return bssl::UniquePtr<BIGNUM>(
+        BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL));
+  }
+
+/*  RSA *rsa_public_key_from_bytes(const uint8_t *in, size_t in_len) {
+    RSA *ret = rsa_parse_public_key(in, in_len);
+    if (ret == NULL) {
+      return NULL;
+    }
+    return ret;
+  }
+
+  RSA *rsa_parse_public_key(const uint8_t *in, size_t in_len) {
+    RSA *ret = RSA_new();
+    if (ret == NULL) {
+      return NULL;
+    }
+    CBS child;
+    if (!cbs_get_asn1(in, in_len) ||
+        !parse_integer(&child, &ret->n) ||
+        !parse_integer(&child, &ret->e) ||
+        CBS_len(&child) != 0) {
+      RSA_free(ret);
+      return NULL;
+    }
+
+    if (!BN_is_odd(ret->e) ||
+        BN_num_bits(ret->e) < 2) {
+      RSA_free(ret);
+      return NULL;
+    }
+
+    return ret;
+  }
+
+  static int parse_integer(CBS *cbs, BIGNUM **out) {
+    assert(*out == NULL);
+    *out = BN_new();
+    if (*out == NULL) {
+      return 0;
+    }
+    return BN_parse_asn1_unsigned(cbs, *out);
+  }
+
+  int cbs_get_asn1(CBS *cbs, CBS *out, unsigned tag_value,
+                          int skip_header) {
+    size_t header_len;
+    unsigned tag;
+    CBS throwaway;
+
+    if (out == NULL) {
+      out = &throwaway;
+    }
+
+    if (!CBS_get_any_asn1_element(cbs, out, &tag, &header_len) ||
+        tag != tag_value) {
+      return 0;
+    }
+
+    if (skip_header && !CBS_skip(out, header_len)) {
+      assert(0);
+      return 0;
+    }
+
+    return 1;
+  }
+
+  static int cbs_get_any_asn1_element(CBS *cbs, CBS *out, unsigned *out_tag,
+                                      size_t *out_header_len, int ber_ok) {
+    CBS header = *cbs;
+    CBS throwaway;
+
+    if (out == NULL) {
+      out = &throwaway;
+    }
+
+    unsigned tag;
+    if (!parse_asn1_tag(&header, &tag)) {
+      return 0;
+    }
+    if (out_tag != NULL) {
+      *out_tag = tag;
+    }
+
+    uint8_t length_byte;
+    if (!CBS_get_u8(&header, &length_byte)) {
+      return 0;
+    }
+
+    size_t header_len = CBS_len(cbs) - CBS_len(&header);
+
+    size_t len;
+    // The format for the length encoding is specified in ITU-T X.690 section
+    // 8.1.3.
+    if ((length_byte & 0x80) == 0) {
+      // Short form length.
+      len = ((size_t) length_byte) + header_len;
+      if (out_header_len != NULL) {
+        *out_header_len = header_len;
+      }
+    } else {
+      // The high bit indicate that this is the long form, while the next 7 bits
+      // encode the number of subsequent octets used to encode the length (ITU-T
+      // X.690 clause 8.1.3.5.b).
+      const size_t num_bytes = length_byte & 0x7f;
+      uint32_t len32;
+
+      if (ber_ok && (tag & CBS_ASN1_CONSTRUCTED) != 0 && num_bytes == 0) {
+        // indefinite length
+        if (out_header_len != NULL) {
+          *out_header_len = header_len;
+        }
+        return CBS_get_bytes(cbs, out, header_len);
+      }
+
+      // ITU-T X.690 clause 8.1.3.5.c specifies that the value 0xff shall not be
+      // used as the first byte of the length. If this parser encounters that
+      // value, num_bytes will be parsed as 127, which will fail the check below.
+      if (num_bytes == 0 || num_bytes > 4) {
+        return 0;
+      }
+      if (!cbs_get_u(&header, &len32, num_bytes)) {
+        return 0;
+      }
+      // ITU-T X.690 section 10.1 (DER length forms) requires encoding the length
+      // with the minimum number of octets.
+      if (len32 < 128) {
+        // Length should have used short-form encoding.
+        return 0;
+      }
+      if ((len32 >> ((num_bytes-1)*8)) == 0) {
+        // Length should have been at least one byte shorter.
+        return 0;
+      }
+      len = len32;
+      if (len + header_len + num_bytes < len) {
+        // Overflow.
+        return 0;
+      }
+      len += header_len + num_bytes;
+      if (out_header_len != NULL) {
+        *out_header_len = header_len + num_bytes;
+      }
+    }
+
+    return CBS_get_bytes(cbs, out, len);
+  }*/
+
+
+
+  /*bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
+                                        const std::string& e) {
+    bssl::UniquePtr<RSA> rsa(RSA_new());
+    rsa->n = createBigNumFromBase64UrlString(n).release();
+    rsa->e = createBigNumFromBase64UrlString(e).release();
+    if (rsa->n == nullptr || rsa->e == nullptr) {
+      // RSA public key field is missing or has parse error.
+      updateStatus(Status::JwksRsaParseError);
+      return nullptr;
+    }
+    if (BN_cmp_word(rsa->e, 3) != 0 && BN_cmp_word(rsa->e, 65537) != 0) {
+      // non-standard key; reject it early.
+      updateStatus(Status::JwksRsaParseError);
+      return nullptr;
+    }
+    return rsa;
+  }*/
+
+  bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
+                                          const std::string& e) {
+	bssl::UniquePtr<RSA> rsa(RSA_new());
+	bssl::UniquePtr<BIGNUM> bn_n = createBigNumFromBase64UrlString(n);
+	bssl::UniquePtr<BIGNUM> bn_e = createBigNumFromBase64UrlString(e);
+
+	if (bn_n.get() == nullptr || bn_e.get() == nullptr) {
+      // RSA public key field is missing or has parse error.
+      updateStatus(Status::JwksRsaParseError);
+	  return nullptr;
+	}
+	RSA_set0_key(rsa.get(), bn_n.get(), bn_e.get(), NULL);
+	if (bn_cmp_word(bn_e.get(), 3) != 0 && bn_cmp_word(bn_e.get(), 65537) != 0) {
+      // non-standard key; reject it early.
+      updateStatus(Status::JwksRsaParseError);
+	  return nullptr;
+	}
+	return rsa;
+  }
+
+  int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
+    BIGNUM* b_bn = BN_new();
+
+    BN_set_word(b_bn, b);
+    BN_set_flags(b_bn, BN_FLG_STATIC_DATA);
+
+    return BN_cmp(a, b_bn);
+  }
+};
+
+Status extractJwkFromJwkRSA(const ::google::protobuf::Struct& jwk_pb,
+                            Jwks::Pubkey* jwk) {
+  if (jwk->alg_specified_ &&
+      (jwk->alg_.size() < 2 || jwk->alg_.compare(0, 2, "RS") != 0)) {
+    return Status::JwksRSAKeyBadAlg;
+  }
+
+  StructUtils jwk_getter(jwk_pb);
+  std::string n_str;
+  auto code = jwk_getter.GetString("n", &n_str);
+  if (code == StructUtils::MISSING) {
+    return Status::JwksRSAKeyMissingN;
+  }
+  if (code == StructUtils::WRONG_TYPE) {
+    return Status::JwksRSAKeyBadN;
+  }
+
+  std::string e_str;
+  code = jwk_getter.GetString("e", &e_str);
+  if (code == StructUtils::MISSING) {
+    return Status::JwksRSAKeyMissingE;
+  }
+  if (code == StructUtils::WRONG_TYPE) {
+    return Status::JwksRSAKeyBadE;
+  }
+
+  EvpPkeyGetter e;
+  jwk->evp_pkey_ = e.createEvpPkeyFromJwkRSA(n_str, e_str);
+  return e.getStatus();
+}
+
+Status extractJwkFromJwkEC(const ::google::protobuf::Struct& jwk_pb,
+                           Jwks::Pubkey* jwk) {
+  if (jwk->alg_specified_ && jwk->alg_ != "ES256") {
+    return Status::JwksECKeyBadAlg;
+  }
+
+  StructUtils jwk_getter(jwk_pb);
+  std::string x_str;
+  auto code = jwk_getter.GetString("x", &x_str);
+  if (code == StructUtils::MISSING) {
+    return Status::JwksECKeyMissingX;
+  }
+  if (code == StructUtils::WRONG_TYPE) {
+    return Status::JwksECKeyBadX;
+  }
+
+  std::string y_str;
+  code = jwk_getter.GetString("y", &y_str);
+  if (code == StructUtils::MISSING) {
+    return Status::JwksECKeyMissingY;
+  }
+  if (code == StructUtils::WRONG_TYPE) {
+    return Status::JwksECKeyBadY;
+  }
+
+  EvpPkeyGetter e;
+  jwk->ec_key_ = e.createEcKeyFromJwkEC(x_str, y_str);
+  return e.getStatus();
+}
+
+Status extractJwk(const ::google::protobuf::Struct& jwk_pb, Jwks::Pubkey* jwk) {
+  StructUtils jwk_getter(jwk_pb);
+  // Check "kty" parameter, it should exist.
+  // https://tools.ietf.org/html/rfc7517#section-4.1
+  auto code = jwk_getter.GetString("kty", &jwk->kty_);
+  if (code == StructUtils::MISSING) {
+    return Status::JwksMissingKty;
+  }
+  if (code == StructUtils::WRONG_TYPE) {
+    return Status::JwksBadKty;
+  }
+
+  // "kid" and "alg" are optional, if they do not exist, set them to empty.
+  // https://tools.ietf.org/html/rfc7517#page-8
+  code = jwk_getter.GetString("kid", &jwk->kid_);
+  if (code == StructUtils::OK) {
+    jwk->kid_specified_ = true;
+  }
+  code = jwk_getter.GetString("alg", &jwk->alg_);
+  if (code == StructUtils::OK) {
+    jwk->alg_specified_ = true;
+  }
+
+  // Extract public key according to "kty" value.
+  // https://tools.ietf.org/html/rfc7518#section-6.1
+  if (jwk->kty_ == "EC") {
+    return extractJwkFromJwkEC(jwk_pb, jwk);
+  } else if (jwk->kty_ == "RSA") {
+    return extractJwkFromJwkRSA(jwk_pb, jwk);
+  }
+  return Status::JwksNotImplementedKty;
+}
+
+}  // namespace
+
+JwksPtr Jwks::createFrom(const std::string& pkey, Type type) {
+  JwksPtr keys(new Jwks());
+  switch (type) {
+    case Type::JWKS:
+      keys->createFromJwksCore(pkey);
+      break;
+    case Type::PEM:
+      keys->createFromPemCore(pkey);
+      break;
+    default:
+      break;
+  }
+  return keys;
+}
+
+void Jwks::createFromPemCore(const std::string& pkey_pem) {
+  keys_.clear();
+  PubkeyPtr key_ptr(new Pubkey());
+  EvpPkeyGetter e;
+  key_ptr->evp_pkey_ = e.createEvpPkeyFromStr(pkey_pem);
+  key_ptr->pem_format_ = true;
+  updateStatus(e.getStatus());
+  assert((key_ptr->evp_pkey_ == nullptr) == (e.getStatus() != Status::Ok));
+  if (e.getStatus() == Status::Ok) {
+    keys_.push_back(std::move(key_ptr));
+  }
+}
+
+void Jwks::createFromJwksCore(const std::string& jwks_json) {
+  keys_.clear();
+
+  ::google::protobuf::util::JsonParseOptions options;
+  ::google::protobuf::Struct jwks_pb;
+  const auto status = ::google::protobuf::util::JsonStringToMessage(
+      jwks_json, &jwks_pb, options);
+  if (!status.ok()) {
+    updateStatus(Status::JwksParseError);
+    return;
+  }
+
+  const auto& fields = jwks_pb.fields();
+  const auto keys_it = fields.find("keys");
+  if (keys_it == fields.end()) {
+    updateStatus(Status::JwksNoKeys);
+    return;
+  }
+  if (keys_it->second.kind_case() != google::protobuf::Value::kListValue) {
+    updateStatus(Status::JwksBadKeys);
+    return;
+  }
+
+  for (const auto& key_value : keys_it->second.list_value().values()) {
+    if (key_value.kind_case() != ::google::protobuf::Value::kStructValue) {
+      continue;
+    }
+    PubkeyPtr key_ptr(new Pubkey());
+    Status status = extractJwk(key_value.struct_value(), key_ptr.get());
+    if (status == Status::Ok) {
+      keys_.push_back(std::move(key_ptr));
+    } else {
+      updateStatus(status);
+      break;
+    }
+  }
+
+  if (keys_.empty()) {
+    updateStatus(Status::JwksNoValidKeys);
+  }
+}
+
+}  // namespace jwt_verify
+}  // namespace google
