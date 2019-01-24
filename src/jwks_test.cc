@@ -10,7 +10,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License.
+// limitations under the License.createFrom
 
 #include "jwt_verify_lib/jwks.h"
 #include "gtest/gtest.h"
@@ -32,7 +32,7 @@ TEST(JwksParseTest, GoodPem) {
  /* const std::string jwks_text =
 		          "-----BEGIN CERTIFICATE-----\n"
 		          "MIIDaDCCAlCgAwIBAgIJAO8vBu8i8exWMA0GCSqGSIb3DQEBCwUAMEkxCzAJBgNV\n"
-		          "BAYTAlVTMQswCQYDVQQIDAJDQTEtMCsGA1UEBwwkTG9zIEFuZ2VsZXNPPUJlYXN0\n"
+		          "BAYTAlVTMQswCQYDVQQIDAJDQTEtMCsGA1UEBwwkTG9zIEFuZ2VsZXcreateFromNPPUJlYXN0\n"
 		          "Q049d3d3LmV4YW1wbGUuY29tMB4XDTE3MDUwMzE4MzkxMloXDTQ0MDkxODE4Mzkx\n"
 		          "MlowSTELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkNBMS0wKwYDVQQHDCRMb3MgQW5n\n"
 		          "ZWxlc089QmVhc3RDTj13d3cuZXhhbXBsZS5jb20wggEiMA0GCSqGSIb3DQEBAQUA\n"
@@ -99,6 +99,7 @@ TEST(JwksParseTest, GoodJwks) {
 )";
 
   auto jwks = Jwks::createFrom(jwks_text, Jwks::JWKS);
+std::cerr << "**************** done createFrom \n";
   EXPECT_EQ(jwks->getStatus(), Status::Ok);
   EXPECT_EQ(jwks->keys().size(), 2);
 
@@ -113,6 +114,8 @@ TEST(JwksParseTest, GoodJwks) {
   EXPECT_TRUE(jwks->keys()[1]->alg_specified_);
   EXPECT_TRUE(jwks->keys()[1]->kid_specified_);
   EXPECT_FALSE(jwks->keys()[1]->pem_format_);
+  std::cerr << "**************** done GoodJwks \n";
+
 }
 
 TEST(JwksParseTest, GoodEC) {

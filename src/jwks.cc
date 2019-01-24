@@ -612,6 +612,8 @@ void Jwks::createFromJwksCore(const std::string& jwks_json) {
   if (keys_.empty()) {
     updateStatus(Status::JwksNoValidKeys);
   }
+
+  std::cerr << "!!!!!!!!!!!!!!!! done createFromJwksCore \n";
 }
 
 }  // namespace jwt_verify

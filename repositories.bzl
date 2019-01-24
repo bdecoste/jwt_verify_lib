@@ -5,16 +5,16 @@ GOOGLETEST_SHA256 = "7c8ece456ad588c30160429498e108e2df6f42a30888b3ec0abf5d9792d
 
 def bsslwrapper_repositories(bind = True):
     http_archive(
-        name = "bssl_wrapper_git",
-        strip_prefix = "bssl_wrapper-31706514083664e39cbdcaadae2e4fff2b18f96d",
-        url = "https://github.com/bdecoste/bssl_wrapper/archive/31706514083664e39cbdcaadae2e4fff2b18f96d.tar.gz",
-        sha256 = "265ae86648d29c29a6066aa1d464d828785bfc264bb3f0587f33216e94ebf94b",
+        name = "bssl_wrapper",
+        strip_prefix = "bssl_wrapper-34df33add45e1a02927fcf79b0bdd5899b7e2e36",
+        url = "https://github.com/bdecoste/bssl_wrapper/archive/34df33add45e1a02927fcf79b0bdd5899b7e2e36.tar.gz",
+        sha256 = "d9e500e1a8849c81e690966422baf66016a7ff85d044c210ad85644f62827158",
     )
 
     if bind:
         native.bind(
-            name = "bssl_wrapper",
-            actual = "@bssl_wrapper_git//:bssl_wrapper",
+            name = "bssl_wrapper_lib",
+            actual = "@bssl_wrapper//:bssl_wrapper_lib",
         )
 
 def googletest_repositories(bind = True):
