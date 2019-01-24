@@ -41,47 +41,39 @@ Status Jwt::parseFromString(const std::string& jwt) {
   if (jwt_split.size() != 3) {
     return Status::JwtBadFormat;
   }
-
   // Parse header json
   header_str_base64url_ = std::string(jwt_split[0]);
   if (!absl::WebSafeBase64Unescape(header_str_base64url_, &header_str_)) {
     return Status::JwtHeaderParseError;
   }
-
   ::google::protobuf::util::JsonParseOptions options;
   const auto header_status = ::google::protobuf::util::JsonStringToMessage(
       header_str_, &header_pb_, options);
   if (!header_status.ok()) {
     return Status::JwtHeaderParseError;
   }
-
   StructUtils header_getter(header_pb_);
   // Header should contain "alg" and should be a string.
   if (header_getter.GetString("alg", &alg_) != StructUtils::OK) {
     return Status::JwtHeaderBadAlg;
   }
-
   if (alg_ != "RS256" && alg_ != "ES256") {
     return Status::JwtHeaderNotImplementedAlg;
   }
-
   // Header may contain "kid", should be a string if exists.
   if (header_getter.GetString("kid", &kid_) == StructUtils::WRONG_TYPE) {
     return Status::JwtHeaderBadKid;
   }
-
   // Parse payload json
   payload_str_base64url_ = std::string(jwt_split[1]);
   if (!absl::WebSafeBase64Unescape(payload_str_base64url_, &payload_str_)) {
     return Status::JwtPayloadParseError;
   }
-
   const auto payload_status = ::google::protobuf::util::JsonStringToMessage(
       payload_str_, &payload_pb_, options);
   if (!payload_status.ok()) {
     return Status::JwtPayloadParseError;
   }
-
   StructUtils payload_getter(payload_pb_);
   if (payload_getter.GetString("iss", &iss_) == StructUtils::WRONG_TYPE) {
     return Status::JwtPayloadParseError;
@@ -89,7 +81,6 @@ Status Jwt::parseFromString(const std::string& jwt) {
   if (payload_getter.GetString("sub", &sub_) == StructUtils::WRONG_TYPE) {
     return Status::JwtPayloadParseError;
   }
-
   if (payload_getter.GetInt64("iat", &iat_) == StructUtils::WRONG_TYPE) {
     return Status::JwtPayloadParseError;
   }
@@ -99,18 +90,15 @@ Status Jwt::parseFromString(const std::string& jwt) {
   if (payload_getter.GetInt64("exp", &exp_) == StructUtils::WRONG_TYPE) {
     return Status::JwtPayloadParseError;
   }
-
   if (payload_getter.GetString("jti", &jti_) == StructUtils::WRONG_TYPE) {
     return Status::JwtPayloadParseError;
   }
-
   // "aud" can be either string array or string.
   // Try as string array, read it as empty array if doesn't exist.
   if (payload_getter.GetStringList("aud", &audiences_) ==
       StructUtils::WRONG_TYPE) {
     return Status::JwtPayloadParseError;
   }
-
   // Set up signature
   if (!absl::WebSafeBase64Unescape(jwt_split[2], &signature_)) {
     // Signature is a bad Base64url input.

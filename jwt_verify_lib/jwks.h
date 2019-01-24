@@ -24,6 +24,12 @@
 
 #include "bssl_wrapper/bssl_wrapper.h"
 
+#define CBS_ASN1_TAG_SHIFT 24
+#define CBS_ASN1_CONSTRUCTED (0x20u << CBS_ASN1_TAG_SHIFT)
+#define CBS_ASN1_SEQUENCE (0x10u | CBS_ASN1_CONSTRUCTED)
+#define CBS_ASN1_TAG_NUMBER_MASK ((1u << (5 + CBS_ASN1_TAG_SHIFT)) - 1)
+#define CBS_ASN1_INTEGER 0x2u
+
 namespace google {
 namespace jwt_verify {
 

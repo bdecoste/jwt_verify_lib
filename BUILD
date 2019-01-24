@@ -22,9 +22,24 @@ cc_library(
         "jwt_verify_lib/verify.h",
     ],
     deps = [
+        ":cbs_lib",
         "//external:abseil_strings",
         "//external:abseil_time",
         "//external:protobuf",
+        "//external:bssl_wrapper",
+        "@openssl//:openssl-lib",
+    ],
+)
+
+cc_library(
+    name = "cbs_lib",
+    srcs = [
+        "src/cbs.cc",
+    ],
+    hdrs = [
+        "jwt_verify_lib/cbs.h",
+    ],
+    deps = [
         "//external:bssl_wrapper",
         "@openssl//:openssl-lib",
     ],
