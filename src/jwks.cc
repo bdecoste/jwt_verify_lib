@@ -68,7 +68,7 @@ class EvpPkeyGetter : public WithStatus {
 	  return nullptr;
 	}
 
-    auto rsa = bssl::UniquePtr<RSA>(
+	bssl::UniquePtr<RSA> rsa = bssl::UniquePtr<RSA>(
         public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
 
 
@@ -94,16 +94,16 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksEcCreateKeyFail);
       return nullptr;
     }
-    bssl::UniquePtr<BIGNUM> bn_x = createBigNumFromBase64UrlString(x);
-    bssl::UniquePtr<BIGNUM> bn_y = createBigNumFromBase64UrlString(y);
+    BIGNUM *bn_x = createBigNumFromBase64UrlString(x);
+    BIGNUM *bn_y = createBigNumFromBase64UrlString(y);
     if (!bn_x || !bn_y) {
       // EC public key field is missing or has parse error.
       updateStatus(Status::JwksEcParseError);
       return nullptr;
     }
 
-    if (EC_KEY_set_public_key_affine_coordinates(ec_key.get(), bn_x.get(),
-                                                 bn_y.get()) == 0) {
+    if (EC_KEY_set_public_key_affine_coordinates(ec_key.get(), bn_x,
+                                                 bn_y) == 0) {
       updateStatus(Status::JwksEcParseError);
       return nullptr;
     }
@@ -121,40 +121,40 @@ class EvpPkeyGetter : public WithStatus {
     return key;
   }
 
-  bssl::UniquePtr<BIGNUM> createBigNumFromBase64UrlString(
+  BIGNUM* createBigNumFromBase64UrlString(
       const std::string& s) {
 	  std::cerr << "!!!!!!!!!!!!!!!! createBigNumFromBase64UrlString \n";
     std::string s_decoded;
     if (!absl::WebSafeBase64Unescape(s, &s_decoded)) {
       return nullptr;
     }
-    return bssl::UniquePtr<BIGNUM>(
-        BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL));
+    return BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL);
   }
 
   bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
                                           const std::string& e) {
 	  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk \n";
 	bssl::UniquePtr<RSA> rsa(RSA_new());
-	bssl::UniquePtr<BIGNUM> bn_n = createBigNumFromBase64UrlString(n);
-	bssl::UniquePtr<BIGNUM> bn_e = createBigNumFromBase64UrlString(e);
+	BIGNUM *bn_n = createBigNumFromBase64UrlString(n);
+	BIGNUM *bn_e = createBigNumFromBase64UrlString(e);
 
-	if (bn_n.get() == nullptr || bn_e.get() == nullptr) {
+	if (bn_n == nullptr || bn_e == nullptr) {
       // RSA public key field is missing or has parse error.
 		  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk JwksRsaParseError 1\n";
       updateStatus(Status::JwksRsaParseError);
 	  return nullptr;
 	}
 
-	if (bn_cmp_word(bn_e.get(), 3) != 0 && bn_cmp_word(bn_e.get(), 65537) != 0) {
+	if (bn_cmp_word(bn_e, 3) != 0 && bn_cmp_word(bn_e, 65537) != 0) {
       // non-standard key; reject it early.
+		  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk JwksRsaParseError 2\n";
       updateStatus(Status::JwksRsaParseError);
-	  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk JwksRsaParseError 2\n";
 
 	  return nullptr;
 	}
 
-	RSA_set0_key(rsa.get(), bn_n.get(), bn_e.get(), NULL);
+	RSA_set0_key(rsa.get(), bn_n, bn_e, NULL);
+
 	return rsa;
   }
 
