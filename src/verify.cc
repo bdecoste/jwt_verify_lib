@@ -113,13 +113,10 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks) {
 
 Status verifyJwt(const Jwt& jwt, const Jwks& jwks, uint64_t now) {
   // First check that the JWT has not expired (exp) and is active (nbf).
-std::cout << "!!!!!!!!!!!!!!!!! verifyJwt " << now << " " << jwt.nbf_ << " " << jwt.exp_ << " \n";
   if (now < jwt.nbf_) {
     return Status::JwtNotYetValid;
   }
   if (jwt.exp_ && now > jwt.exp_) {
-	  std::cout << "!!!!!!!!!!!!!!!!! expired \n";
-
     return Status::JwtExpired;
   }
 

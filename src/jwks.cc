@@ -58,6 +58,7 @@ class EvpPkeyGetter : public WithStatus {
  public:
   // Create EVP_PKEY from PEM string
   bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromStr(const std::string& pkey_pem) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createEvpPkeyFromStr \n";
     // Header "-----BEGIN CERTIFICATE ---"and tailer "-----END CERTIFICATE ---"
     // should have been removed.
 
@@ -80,11 +81,13 @@ class EvpPkeyGetter : public WithStatus {
 
   bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromJwkRSA(const std::string& n,
                                                     const std::string& e) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createEvpPkeyFromJwkRSA \n";
     return createEvpPkeyFromRsa(createRsaFromJwk(n, e).get());
   }
 
   bssl::UniquePtr<EC_KEY> createEcKeyFromJwkEC(const std::string& x,
                                                const std::string& y) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createEcKeyFromJwkEC \n";
     bssl::UniquePtr<EC_KEY> ec_key(
         EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
     if (!ec_key) {
@@ -109,6 +112,7 @@ class EvpPkeyGetter : public WithStatus {
 
  private:
   bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromRsa(RSA* rsa) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createEvpPkeyFromRsa \n";
     if (!rsa) {
       return nullptr;
     }
@@ -119,6 +123,7 @@ class EvpPkeyGetter : public WithStatus {
 
   bssl::UniquePtr<BIGNUM> createBigNumFromBase64UrlString(
       const std::string& s) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createBigNumFromBase64UrlString \n";
     std::string s_decoded;
     if (!absl::WebSafeBase64Unescape(s, &s_decoded)) {
       return nullptr;
@@ -129,6 +134,7 @@ class EvpPkeyGetter : public WithStatus {
 
   bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
                                           const std::string& e) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk \n";
 	bssl::UniquePtr<RSA> rsa(RSA_new());
 	bssl::UniquePtr<BIGNUM> bn_n = createBigNumFromBase64UrlString(n);
 	bssl::UniquePtr<BIGNUM> bn_e = createBigNumFromBase64UrlString(e);
@@ -148,15 +154,21 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
+	  std::cerr << "!!!!!!!!!!!!!!!! bn_cmp_word \n";
     BIGNUM* b_bn = BN_new();
 
     BN_set_word(b_bn, b);
     BN_set_flags(b_bn, BN_FLG_STATIC_DATA);
 
-    return BN_cmp(a, b_bn);
+    int result = BN_cmp(a, b_bn);
+
+    BN_free(b_bn);
+
+    return result;
   }
 
   RSA* public_key_from_bytes(const uint8_t *in, size_t in_len) {
+	  std::cerr << "!!!!!!!!!!!!!!!! public_key_from_bytes \n";
     Cbs cbs(in, in_len);
     RSA* ret = parse_public_key(&cbs);
     if (ret == NULL) {
@@ -166,6 +178,7 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   RSA* parse_public_key(Cbs *cbs) {
+	  std::cerr << "!!!!!!!!!!!!!!!! parse_public_key \n";
 	RSA *rsa = RSA_new();
     if (rsa == NULL) {
   	  return NULL;
@@ -197,6 +210,7 @@ class EvpPkeyGetter : public WithStatus {
 
   int cbs_get_asn1(Cbs *cbs, Cbs *out, unsigned tag_value,
                           int skip_header) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_get_asn1 \n";
     size_t header_len;
     unsigned tag;
     Cbs throwaway(NULL, 0);
@@ -219,11 +233,13 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   int cbs_skip(Cbs *cbs, size_t len) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_skip \n";
     const uint8_t *dummy;
     return cbs_get(cbs, &dummy, len);
   }
 
   int cbs_get(Cbs *cbs, const uint8_t **p, size_t n) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_get \n";
     if (cbs->len_ < n) {
       return 0;
     }
@@ -236,6 +252,7 @@ class EvpPkeyGetter : public WithStatus {
 
   int cbs_get_any_asn1_element(Cbs *cbs, Cbs *out, unsigned *out_tag,
                                       size_t *out_header_len, int ber_ok) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_get_any_asn1_element \n";
     Cbs header = *cbs;
     Cbs throwaway(NULL, 0);
 
@@ -316,6 +333,7 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   int cbs_get_u(Cbs *cbs, uint32_t *out, size_t len) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_get_u \n";
     uint32_t result = 0;
     const uint8_t *data;
 
@@ -332,6 +350,7 @@ class EvpPkeyGetter : public WithStatus {
 
 
   int cbs_get_bytes(Cbs *cbs, Cbs *out, size_t len) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_get_bytes \n";
     const uint8_t *v;
     if (!cbs_get(cbs, &v, len)) {
       return 0;
@@ -341,11 +360,13 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   void cbs_init(Cbs *cbs, const uint8_t *data, size_t len) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_init \n";
     cbs->data_ = data;
     cbs->len_ = len;
   }
 
   int cbs_get_u8(Cbs *cbs, uint8_t *out) {
+	  std::cerr << "!!!!!!!!!!!!!!!! cbs_get_u8 \n";
     const uint8_t *v;
     if (!cbs_get(cbs, &v, 1)) {
       return 0;
@@ -355,6 +376,7 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   int parse_asn1_tag(Cbs *cbs, unsigned *out) {
+	  std::cerr << "!!!!!!!!!!!!!!!! parse_asn1_tag \n";
     uint8_t tag_byte;
     if (!cbs_get_u8(cbs, &tag_byte)) {
       return 0;
@@ -388,6 +410,7 @@ class EvpPkeyGetter : public WithStatus {
   }
 
   int bn_parse_asn1_unsigned(Cbs *cbs, BIGNUM *ret) {
+	  std::cerr << "!!!!!!!!!!!!!!!! bn_parse_asn1_unsigned \n";
     Cbs child(NULL, 0);
     if (!cbs_get_asn1(cbs, &child, CBS_ASN1_INTEGER, 1) || child.len_ == 0) {
 //      OPENSSL_PUT_ERROR(BN, BN_R_BAD_ENCODING);
@@ -412,6 +435,7 @@ class EvpPkeyGetter : public WithStatus {
 
 
   int parse_base128_integer(Cbs *cbs, uint64_t *out) {
+	  std::cerr << "!!!!!!!!!!!!!!!! parse_base128_integer \n";
     uint64_t v = 0;
     uint8_t b;
     do {
@@ -437,6 +461,8 @@ class EvpPkeyGetter : public WithStatus {
 
 
   int parse_integer(Cbs *cbs, BIGNUM **out) {
+		std::cerr << "!!!!!!!!!!!!!!!! parse_integer \n";
+
     assert(*out == NULL);
     *out = BN_new();
     if (*out == NULL) {
@@ -449,6 +475,8 @@ class EvpPkeyGetter : public WithStatus {
 
 Status extractJwkFromJwkRSA(const ::google::protobuf::Struct& jwk_pb,
                             Jwks::Pubkey* jwk) {
+	std::cerr << "!!!!!!!!!!!!!!!! extractJwkFromJwkRSA \n";
+
   if (jwk->alg_specified_ &&
       (jwk->alg_.size() < 2 || jwk->alg_.compare(0, 2, "RS") != 0)) {
     return Status::JwksRSAKeyBadAlg;
@@ -480,6 +508,8 @@ Status extractJwkFromJwkRSA(const ::google::protobuf::Struct& jwk_pb,
 
 Status extractJwkFromJwkEC(const ::google::protobuf::Struct& jwk_pb,
                            Jwks::Pubkey* jwk) {
+	std::cerr << "!!!!!!!!!!!!!!!! extractJwkFromJwkEC \n";
+
   if (jwk->alg_specified_ && jwk->alg_ != "ES256") {
     return Status::JwksECKeyBadAlg;
   }
@@ -510,6 +540,8 @@ Status extractJwkFromJwkEC(const ::google::protobuf::Struct& jwk_pb,
 
 
 Status extractJwk(const ::google::protobuf::Struct& jwk_pb, Jwks::Pubkey* jwk) {
+	std::cerr << "!!!!!!!!!!!!!!!! extractJwk \n";
+
   StructUtils jwk_getter(jwk_pb);
   // Check "kty" parameter, it should exist.
   // https://tools.ietf.org/html/rfc7517#section-4.1
@@ -573,6 +605,8 @@ void Jwks::createFromPemCore(const std::string& pkey_pem) {
 }
 
 void Jwks::createFromJwksCore(const std::string& jwks_json) {
+std::cerr << "!!!!!!!!!!!!!!!! createFromJwksCore \n";
+
   keys_.clear();
 
   ::google::protobuf::util::JsonParseOptions options;
