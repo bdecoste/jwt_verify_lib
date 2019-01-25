@@ -61,6 +61,7 @@ bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
 bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
                        size_t signature_len, const uint8_t* signed_data,
                        size_t signed_data_len) {
+std::cerr << "!!!!!!!!!!!!!!!!! verifySignatureEC \n";
   if (key == nullptr || signature == nullptr || signed_data == nullptr) {
     return false;
   }
@@ -82,6 +83,8 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
   //ECDSA_SIG_get0(ecdsa_sig.get(), &pr, &ps);
   if (BN_bin2bn(signature, 32, pr) == nullptr ||
       BN_bin2bn(signature + 32, 32, ps) == nullptr) {
+	BN_free(pr);
+	BN_free(ps);
 	return false;
   }
 
@@ -96,6 +99,7 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
   }
 
   ERR_clear_error();
+
   return false;
 }
 
