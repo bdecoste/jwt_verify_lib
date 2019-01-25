@@ -141,15 +141,20 @@ class EvpPkeyGetter : public WithStatus {
 
 	if (bn_n.get() == nullptr || bn_e.get() == nullptr) {
       // RSA public key field is missing or has parse error.
+		  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk JwksRsaParseError 1\n";
       updateStatus(Status::JwksRsaParseError);
 	  return nullptr;
 	}
-	RSA_set0_key(rsa.get(), bn_n.get(), bn_e.get(), NULL);
+
 	if (bn_cmp_word(bn_e.get(), 3) != 0 && bn_cmp_word(bn_e.get(), 65537) != 0) {
       // non-standard key; reject it early.
       updateStatus(Status::JwksRsaParseError);
+	  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk JwksRsaParseError 2\n";
+
 	  return nullptr;
 	}
+
+	RSA_set0_key(rsa.get(), bn_n.get(), bn_e.get(), NULL);
 	return rsa;
   }
 
@@ -577,6 +582,8 @@ Status extractJwk(const ::google::protobuf::Struct& jwk_pb, Jwks::Pubkey* jwk) {
 }  // namespace
 
 JwksPtr Jwks::createFrom(const std::string& pkey, Type type) {
+	std::cerr << "!!!!!!!!!!!!!!!! createFrom \n";
+
   JwksPtr keys(new Jwks());
   switch (type) {
     case Type::JWKS:
@@ -592,6 +599,8 @@ JwksPtr Jwks::createFrom(const std::string& pkey, Type type) {
 }
 
 void Jwks::createFromPemCore(const std::string& pkey_pem) {
+	std::cerr << "!!!!!!!!!!!!!!!! createFromPemCore \n";
+
   keys_.clear();
   PubkeyPtr key_ptr(new Pubkey());
   EvpPkeyGetter e;
