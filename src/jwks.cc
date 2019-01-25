@@ -148,13 +148,17 @@ class EvpPkeyGetter : public WithStatus {
 	if (bn_cmp_word(bn_e, 3) != 0 && bn_cmp_word(bn_e, 65537) != 0) {
       // non-standard key; reject it early.
 		  std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk JwksRsaParseError 2\n";
+
+	  BN_free(bn_n);
+	  BN_free(bn_e);
+
       updateStatus(Status::JwksRsaParseError);
 
 	  return nullptr;
 	}
 
-	RSA_set0_key(rsa.get(), bn_n, bn_e, NULL);
-
+	int success = RSA_set0_key(rsa.get(), bn_n, bn_e, NULL);
+	std::cerr << "!!!!!!!!!!!!!!!! createRsaFromJwk success " << success << " \n";
 	return rsa;
   }
 
