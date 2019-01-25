@@ -36,6 +36,7 @@ inline const uint8_t* castToUChar(const absl::string_view& str) {
 bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
                         const uint8_t* signature, size_t signature_len,
                         const uint8_t* signed_data, size_t signed_data_len) {
+	std::cerr << "!!!!!!!!!!!!!!!! verifySignatureRSA\n";
   if (key == nullptr || md == nullptr || signature == nullptr ||
       signed_data == nullptr) {
     return false;
@@ -116,6 +117,7 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks) {
 }
 
 Status verifyJwt(const Jwt& jwt, const Jwks& jwks, uint64_t now) {
+	std::cerr << "!!!!!!!!!!!!!!!! verifyJwt 1\n";
   // First check that the JWT has not expired (exp) and is active (nbf).
   if (now < jwt.nbf_) {
     return Status::JwtNotYetValid;
@@ -166,6 +168,7 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks,
 
 Status verifyJwt(const Jwt& jwt, const Jwks& jwks,
                  const std::vector<std::string>& audiences, uint64_t now) {
+	std::cerr << "!!!!!!!!!!!!!!!! verifyJwt 2 \n";
   CheckAudience checker(audiences);
   if (!checker.areAudiencesAllowed(jwt.audiences_)) {
     return Status::JwtAudienceNotAllowed;
