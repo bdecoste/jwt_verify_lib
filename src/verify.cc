@@ -148,11 +148,14 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks, uint64_t now) {
         verifySignatureEC(jwk->ec_key_.get(), jwt.signature_, signed_data)) {
       // Verification succeeded.
       return Status::Ok;
-    } else if ((jwk->pem_format_ || jwk->kty_ == "RSA") &&
+    } else {
+    	if ((jwk->pem_format_ || jwk->kty_ == "RSA") &&
                verifySignatureRSA(jwk->evp_pkey_.get(), EVP_sha256(),
                                   jwt.signature_, signed_data)) {
-      // Verification succeeded.
-      return Status::Ok;
+    		// Verification succeeded.
+
+    		return Status::Ok;
+    	}
     }
   }
 

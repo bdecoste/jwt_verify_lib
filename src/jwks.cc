@@ -162,12 +162,11 @@ class EvpPkeyGetter : public WithStatus {
 	return rsa;
   }
 
-  int bn_cmp_word(const BIGNUM *a, BN_ULONG b) {
+  int bn_cmp_word(BIGNUM *a, BN_ULONG b) {
 	  std::cerr << "!!!!!!!!!!!!!!!! bn_cmp_word \n";
     BIGNUM* b_bn = BN_new();
 
     BN_set_word(b_bn, b);
-    BN_set_flags(b_bn, BN_FLG_STATIC_DATA);
 
     int result = BN_cmp(a, b_bn);
 
