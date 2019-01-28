@@ -16,6 +16,20 @@ def bsslwrapper_repositories(bind = True):
             name = "bssl_wrapper_lib",
             actual = "@bssl_wrapper//:bssl_wrapper_lib",
         )
+        
+def opensslcbs_repositories(bind = True):
+    http_archive(
+        name = "openssl_cbs",
+        strip_prefix = "openssl-cbs-563fe95a2d5690934f903d9ebb3d9bbae40fc93f",
+        url = "https://github.com/bdecoste/openssl-cbs/archive/563fe95a2d5690934f903d9ebb3d9bbae40fc93f.tar.gz",
+        sha256 = "44453d398994a8d8fa540b2ffb5bbbb0a414c030236197e224ee6298adb53bdb",
+    )
+
+    if bind:
+        native.bind(
+            name = "openssl_cbs_lib",
+            actual = "@openssl_cbs//:openssl_cbs_lib",
+        )
 
 def googletest_repositories(bind = True):
     http_archive(
