@@ -15,7 +15,7 @@ opensslcbs_repositories()
 
 new_local_repository(
     name = "openssl",
-    path = "/usr/local/lib64/openssl",
+    path = "/usr/lib64/",
     build_file = "openssl.BUILD"
 )
 
