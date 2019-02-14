@@ -18,9 +18,9 @@ def bsslwrapper_repositories(bind = True):
 def opensslcbs_repositories(bind = True):
     http_archive(
         name = "openssl_cbs",
-        strip_prefix = "openssl-cbs-ff2073026cc8d14ae24e082f1207aae887371022",
-        url = "https://github.com/bdecoste/openssl-cbs/archive/ff2073026cc8d14ae24e082f1207aae887371022.tar.gz",
-        sha256 = "c9deb738a27a94fbc2f5dfa3f788a50c23fed40922d4d396e8c15777213873e1",
+        strip_prefix = "openssl-cbs-c81c75e7ec037605ef9b10587f6a59ba584a1b84",
+        url = "https://github.com/bdecoste/openssl-cbs/archive/c81c75e7ec037605ef9b10587f6a59ba584a1b84.tar.gz",
+        sha256 = "ebe7aca5c1068358b854d1be684d087f29a09832e67ae207f4539b7d261ae9d2",
     )
 
     if bind:
