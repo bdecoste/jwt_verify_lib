@@ -36,6 +36,7 @@ inline const uint8_t* castToUChar(const absl::string_view& str) {
 bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
                         const uint8_t* signature, size_t signature_len,
                         const uint8_t* signed_data, size_t signed_data_len) {
+	std::cerr << "!!!!!!!!!!!!!!!! verifySignatureRSA\n";
   if (key == nullptr || md == nullptr || signature == nullptr ||
       signed_data == nullptr) {
     return false;
@@ -61,6 +62,7 @@ bool verifySignatureRSA(EVP_PKEY* key, const EVP_MD* md,
 bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
                        size_t signature_len, const uint8_t* signed_data,
                        size_t signed_data_len) {
+std::cerr << "!!!!!!!!!!!!!!!!! verifySignatureEC \n";
   if (key == nullptr || signature == nullptr || signed_data == nullptr) {
     return false;
   }
@@ -77,15 +79,28 @@ bool verifySignatureEC(EC_KEY* key, const uint8_t* signature,
     return false;
   }
 
-  if (BN_bin2bn(signature, 32, ecdsa_sig->r) == nullptr ||
-      BN_bin2bn(signature + 32, 32, ecdsa_sig->s) == nullptr) {
-    return false;
+  BIGNUM* pr = BN_new();
+  BIGNUM* ps = BN_new();
+  //ECDSA_SIG_get0(ecdsa_sig.get(), &pr, &ps);
+  if (BN_bin2bn(signature, 32, pr) == nullptr ||
+      BN_bin2bn(signature + 32, 32, ps) == nullptr) {
+	BN_free(pr);
+	BN_free(ps);
+	return false;
   }
-  if (ECDSA_do_verify(digest, SHA256_DIGEST_LENGTH, ecdsa_sig.get(), key) ==
-      1) {
+
+  //if (BN_bin2bn(signature, 32, ecdsa_sig->r) == nullptr ||
+  //    BN_bin2bn(signature + 32, 32, ecdsa_sig->s) == nullptr) {
+  //  return false;
+  //}
+  ECDSA_SIG_set0(ecdsa_sig.get(), pr, ps);
+
+  if (ECDSA_do_verify(digest, SHA256_DIGEST_LENGTH, ecdsa_sig.get(), key) == 1) {
     return true;
   }
+
   ERR_clear_error();
+
   return false;
 }
 
@@ -102,6 +117,7 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks) {
 }
 
 Status verifyJwt(const Jwt& jwt, const Jwks& jwks, uint64_t now) {
+	std::cerr << "!!!!!!!!!!!!!!!! verifyJwt 1\n";
   // First check that the JWT has not expired (exp) and is active (nbf).
   if (now < jwt.nbf_) {
     return Status::JwtNotYetValid;
@@ -132,11 +148,14 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks, uint64_t now) {
         verifySignatureEC(jwk->ec_key_.get(), jwt.signature_, signed_data)) {
       // Verification succeeded.
       return Status::Ok;
-    } else if ((jwk->pem_format_ || jwk->kty_ == "RSA") &&
+    } else {
+    	if ((jwk->pem_format_ || jwk->kty_ == "RSA") &&
                verifySignatureRSA(jwk->evp_pkey_.get(), EVP_sha256(),
                                   jwt.signature_, signed_data)) {
-      // Verification succeeded.
-      return Status::Ok;
+    		// Verification succeeded.
+
+    		return Status::Ok;
+    	}
     }
   }
 
@@ -152,6 +171,7 @@ Status verifyJwt(const Jwt& jwt, const Jwks& jwks,
 
 Status verifyJwt(const Jwt& jwt, const Jwks& jwks,
                  const std::vector<std::string>& audiences, uint64_t now) {
+	std::cerr << "!!!!!!!!!!!!!!!! verifyJwt 2 \n";
   CheckAudience checker(audiences);
   if (!checker.areAudiencesAllowed(jwt.audiences_)) {
     return Status::JwtAudienceNotAllowed;

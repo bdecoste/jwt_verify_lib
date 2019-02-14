@@ -107,6 +107,7 @@ class VerifyJwkECTest : public testing::Test {
 TEST_F(VerifyJwkECTest, KidOK) {
   Jwt jwt;
   EXPECT_EQ(jwt.parseFromString(JwtTextEC), Status::Ok);
+
   EXPECT_EQ(verifyJwt(jwt, *jwks_), Status::Ok);
 
   fuzzJwtSignature(jwt, [this](const Jwt& jwt) {

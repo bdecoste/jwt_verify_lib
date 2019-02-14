@@ -41,7 +41,7 @@ TEST(VerifyExpTest, Expired) {
   Jwt jwt;
   Jwks jwks;
   EXPECT_EQ(jwt.parseFromString(JwtText), Status::Ok);
-  EXPECT_EQ(verifyJwt(jwt, jwks, 9223372036854775807), Status::JwtExpired);
+  EXPECT_EQ(verifyJwt(jwt, jwks, 9223372036854775809), Status::JwtExpired);
 }
 
 TEST(VerifyExpTest, NotBefore) {

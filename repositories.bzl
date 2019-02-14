@@ -1,21 +1,34 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-BORINGSSL_COMMIT = "9df0c47bc034d60d73d216cd0e090707b3fbea58"  # same as Envoy
-BORINGSSL_SHA256 = "86d0614bb9e6cb4e6444b83bb1f031755eff4bbe52cd8f4cd5720bb84a7ea9f5"
 
-def boringssl_repositories(bind = True):
+def bsslwrapper_repositories(bind = True):
     http_archive(
-        name = "boringssl",
-        strip_prefix = "boringssl-" + BORINGSSL_COMMIT,
-        url = "https://github.com/google/boringssl/archive/" + BORINGSSL_COMMIT + ".tar.gz",
-        sha256 = BORINGSSL_SHA256,
+        name = "bssl_wrapper",
+        strip_prefix = "bssl_wrapper-34df33add45e1a02927fcf79b0bdd5899b7e2e36",
+        url = "https://github.com/bdecoste/bssl_wrapper/archive/34df33add45e1a02927fcf79b0bdd5899b7e2e36.tar.gz",
+        sha256 = "d9e500e1a8849c81e690966422baf66016a7ff85d044c210ad85644f62827158",
     )
 
     if bind:
         native.bind(
-            name = "ssl",
-            actual = "@boringssl//:ssl",
+            name = "bssl_wrapper_lib",
+            actual = "@bssl_wrapper//:bssl_wrapper_lib",
         )
+        
+def opensslcbs_repositories(bind = True):
+    http_archive(
+        name = "openssl_cbs",
+        strip_prefix = "openssl-cbs-ff2073026cc8d14ae24e082f1207aae887371022",
+        url = "https://github.com/bdecoste/openssl-cbs/archive/ff2073026cc8d14ae24e082f1207aae887371022.tar.gz",
+        sha256 = "c9deb738a27a94fbc2f5dfa3f788a50c23fed40922d4d396e8c15777213873e1",
+    )
+
+    if bind:
+        native.bind(
+            name = "openssl_cbs_lib",
+            actual = "@openssl_cbs//:openssl_cbs_lib",
+    )
+
 
 GOOGLETEST_COMMIT = "43863938377a9ea1399c0596269e0890b5c5515a"
 GOOGLETEST_SHA256 = "7c8ece456ad588c30160429498e108e2df6f42a30888b3ec0abf5d9792d9d3a0"

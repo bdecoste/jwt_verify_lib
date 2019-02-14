@@ -14,15 +14,18 @@
 
 #include <assert.h>
 #include <iostream>
+#include <fstream>
 
 #include "absl/strings/escaping.h"
 #include "google/protobuf/struct.pb.h"
 #include "google/protobuf/util/json_util.h"
+#include "opensslcbs/cbs.h"
 #include "jwt_verify_lib/jwks.h"
 #include "src/struct_utils.h"
 
 #include "openssl/bn.h"
 #include "openssl/ecdsa.h"
+#include "openssl/err.h"
 #include "openssl/evp.h"
 #include "openssl/rsa.h"
 #include "openssl/sha.h"
@@ -35,6 +38,10 @@ namespace {
 // A convinence inline cast function.
 inline const uint8_t* castToUChar(const std::string& str) {
   return reinterpret_cast<const uint8_t*>(str.c_str());
+}
+
+inline const char* castToChar(const std::string& str) {
+  return reinterpret_cast<const char*>(str.c_str());
 }
 
 /** Class to create EVP_PKEY object from string of public key, formatted in PEM
@@ -53,17 +60,21 @@ class EvpPkeyGetter : public WithStatus {
   bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromStr(const std::string& pkey_pem) {
     // Header "-----BEGIN CERTIFICATE ---"and tailer "-----END CERTIFICATE ---"
     // should have been removed.
-    std::string pkey_der;
-    if (!absl::Base64Unescape(pkey_pem, &pkey_der) || pkey_der.empty()) {
-      updateStatus(Status::JwksPemBadBase64);
-      return nullptr;
-    }
-    auto rsa = bssl::UniquePtr<RSA>(
+
+	std::string pkey_der;
+	if (!absl::Base64Unescape(pkey_pem, &pkey_der) || pkey_der.empty()) {
+	  updateStatus(Status::JwksPemBadBase64);
+	  return nullptr;
+	}
+
+	bssl::UniquePtr<RSA> rsa = bssl::UniquePtr<RSA>(
         RSA_public_key_from_bytes(castToUChar(pkey_der), pkey_der.length()));
+
+
     if (!rsa) {
-      updateStatus(Status::JwksPemParseError);
-      return nullptr;
-    }
+	  updateStatus(Status::JwksPemParseError);
+	  return nullptr;
+	}
     return createEvpPkeyFromRsa(rsa.get());
   }
 
@@ -80,16 +91,16 @@ class EvpPkeyGetter : public WithStatus {
       updateStatus(Status::JwksEcCreateKeyFail);
       return nullptr;
     }
-    bssl::UniquePtr<BIGNUM> bn_x = createBigNumFromBase64UrlString(x);
-    bssl::UniquePtr<BIGNUM> bn_y = createBigNumFromBase64UrlString(y);
+    BIGNUM *bn_x = createBigNumFromBase64UrlString(x);
+    BIGNUM *bn_y = createBigNumFromBase64UrlString(y);
     if (!bn_x || !bn_y) {
       // EC public key field is missing or has parse error.
       updateStatus(Status::JwksEcParseError);
       return nullptr;
     }
 
-    if (EC_KEY_set_public_key_affine_coordinates(ec_key.get(), bn_x.get(),
-                                                 bn_y.get()) == 0) {
+    if (EC_KEY_set_public_key_affine_coordinates(ec_key.get(), bn_x,
+                                                 bn_y) == 0) {
       updateStatus(Status::JwksEcParseError);
       return nullptr;
     }
@@ -98,6 +109,7 @@ class EvpPkeyGetter : public WithStatus {
 
  private:
   bssl::UniquePtr<EVP_PKEY> createEvpPkeyFromRsa(RSA* rsa) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createEvpPkeyFromRsa \n";
     if (!rsa) {
       return nullptr;
     }
@@ -106,37 +118,47 @@ class EvpPkeyGetter : public WithStatus {
     return key;
   }
 
-  bssl::UniquePtr<BIGNUM> createBigNumFromBase64UrlString(
+  BIGNUM* createBigNumFromBase64UrlString(
       const std::string& s) {
+	  std::cerr << "!!!!!!!!!!!!!!!! createBigNumFromBase64UrlString \n";
     std::string s_decoded;
     if (!absl::WebSafeBase64Unescape(s, &s_decoded)) {
       return nullptr;
     }
-    return bssl::UniquePtr<BIGNUM>(
-        BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL));
-  };
+    return BN_bin2bn(castToUChar(s_decoded), s_decoded.length(), NULL);
+  }
 
   bssl::UniquePtr<RSA> createRsaFromJwk(const std::string& n,
-                                        const std::string& e) {
-    bssl::UniquePtr<RSA> rsa(RSA_new());
-    rsa->n = createBigNumFromBase64UrlString(n).release();
-    rsa->e = createBigNumFromBase64UrlString(e).release();
-    if (rsa->n == nullptr || rsa->e == nullptr) {
+                                          const std::string& e) {
+	bssl::UniquePtr<RSA> rsa(RSA_new());
+	BIGNUM *bn_n = createBigNumFromBase64UrlString(n);
+	BIGNUM *bn_e = createBigNumFromBase64UrlString(e);
+
+	if (bn_n == nullptr || bn_e == nullptr) {
       // RSA public key field is missing or has parse error.
       updateStatus(Status::JwksRsaParseError);
-      return nullptr;
-    }
-    if (BN_cmp_word(rsa->e, 3) != 0 && BN_cmp_word(rsa->e, 65537) != 0) {
+	  return nullptr;
+	}
+
+	if (BN_cmp_word(bn_e, 3) != 0 && BN_cmp_word(bn_e, 65537) != 0) {
       // non-standard key; reject it early.
+
+	  BN_free(bn_n);
+	  BN_free(bn_e);
+
       updateStatus(Status::JwksRsaParseError);
-      return nullptr;
-    }
-    return rsa;
+
+	  return nullptr;
+	}
+
+	int success = RSA_set0_key(rsa.get(), bn_n, bn_e, NULL);
+	return rsa;
   }
 };
 
 Status extractJwkFromJwkRSA(const ::google::protobuf::Struct& jwk_pb,
                             Jwks::Pubkey* jwk) {
+
   if (jwk->alg_specified_ &&
       (jwk->alg_.size() < 2 || jwk->alg_.compare(0, 2, "RS") != 0)) {
     return Status::JwksRSAKeyBadAlg;
@@ -168,6 +190,8 @@ Status extractJwkFromJwkRSA(const ::google::protobuf::Struct& jwk_pb,
 
 Status extractJwkFromJwkEC(const ::google::protobuf::Struct& jwk_pb,
                            Jwks::Pubkey* jwk) {
+	std::cerr << "!!!!!!!!!!!!!!!! extractJwkFromJwkEC \n";
+
   if (jwk->alg_specified_ && jwk->alg_ != "ES256") {
     return Status::JwksECKeyBadAlg;
   }
@@ -196,7 +220,10 @@ Status extractJwkFromJwkEC(const ::google::protobuf::Struct& jwk_pb,
   return e.getStatus();
 }
 
+
 Status extractJwk(const ::google::protobuf::Struct& jwk_pb, Jwks::Pubkey* jwk) {
+	std::cerr << "!!!!!!!!!!!!!!!! extractJwk \n";
+
   StructUtils jwk_getter(jwk_pb);
   // Check "kty" parameter, it should exist.
   // https://tools.ietf.org/html/rfc7517#section-4.1
@@ -232,6 +259,8 @@ Status extractJwk(const ::google::protobuf::Struct& jwk_pb, Jwks::Pubkey* jwk) {
 }  // namespace
 
 JwksPtr Jwks::createFrom(const std::string& pkey, Type type) {
+	std::cerr << "!!!!!!!!!!!!!!!! createFrom \n";
+
   JwksPtr keys(new Jwks());
   switch (type) {
     case Type::JWKS:
@@ -247,6 +276,8 @@ JwksPtr Jwks::createFrom(const std::string& pkey, Type type) {
 }
 
 void Jwks::createFromPemCore(const std::string& pkey_pem) {
+	std::cerr << "!!!!!!!!!!!!!!!! createFromPemCore \n";
+
   keys_.clear();
   PubkeyPtr key_ptr(new Pubkey());
   EvpPkeyGetter e;
@@ -260,6 +291,8 @@ void Jwks::createFromPemCore(const std::string& pkey_pem) {
 }
 
 void Jwks::createFromJwksCore(const std::string& jwks_json) {
+std::cerr << "!!!!!!!!!!!!!!!! createFromJwksCore \n";
+
   keys_.clear();
 
   ::google::protobuf::util::JsonParseOptions options;
@@ -299,6 +332,8 @@ void Jwks::createFromJwksCore(const std::string& jwks_json) {
   if (keys_.empty()) {
     updateStatus(Status::JwksNoValidKeys);
   }
+
+  std::cerr << "!!!!!!!!!!!!!!!! done createFromJwksCore \n";
 }
 
 }  // namespace jwt_verify
